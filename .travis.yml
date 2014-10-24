@@ -1,0 +1,11 @@
+language: python
+python:
+    - "2.7"
+install: 
+    - "pip install coverage"
+    - "pip install coveralls"
+script: 
+    - "pylint ./scripts/* virtTrinity/ --reports=n --disable=W,R,C"
+    - "coverage run --source=virtTrinity,scripts/virt-trinity setup.py test"
+after_success:
+    coveralls
