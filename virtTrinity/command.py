@@ -3,9 +3,11 @@ import json
 import option
 import subprocess
 
+
 class Command(object):
     name = ''
     options = []
+
     def __init__(self, name=''):
         if name:
             self.name = name
@@ -69,7 +71,8 @@ class Command(object):
         return cmd
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
 
     def __str__(self):
         return self.short_name

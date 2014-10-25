@@ -1,5 +1,6 @@
 import os
 
+
 def renew(vm_name):
     os.system('virsh undefine virt-fsm-running')
     xml = """
@@ -19,6 +20,7 @@ def renew(vm_name):
     with open(xml_file, 'w') as tmp_xml:
         tmp_xml.write(xml)
     os.system('virsh create %s' % xml_file)
+
 
 def prepare_running():
     print 'hello'

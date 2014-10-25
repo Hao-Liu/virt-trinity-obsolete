@@ -5,6 +5,7 @@ import command
 import subprocess
 import itertools
 
+
 class Virsh(object):
     commands = {}
 
@@ -36,7 +37,8 @@ class Virsh(object):
                 serializable_cmd = json.loads(virsh_cmds[cmd_name].to_json())
                 serializable_cmds[cmd_name] = serializable_cmd
             with open('virsh_cmds.json', 'w') as json_file:
-                json.dump(serializable_cmds, json_file, sort_keys=True, indent=4)
+                json.dump(serializable_cmds, json_file, sort_keys=True,
+                          indent=4)
         return virsh_cmds
 
     def gen_random_cmdline_from_cmd(self, cmd):

@@ -1,7 +1,9 @@
 import option_type
 
+
 class Option(object):
     required = False
+
     def __init__(self, opt_line=''):
         if opt_line:
             self.name, self.type, self.desc = [
@@ -38,8 +40,5 @@ class Option(object):
                 opt_type = 'domain'
             else:
                 opt_type = 'string'
-        all_types = option_type.OptionType(opt_type).parse_types(self.name, )
+        all_types = option_type.OptionType(opt_type).parse_types(self.name)
         return all_types
-        
-
-

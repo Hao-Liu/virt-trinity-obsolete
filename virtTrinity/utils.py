@@ -5,6 +5,7 @@ import fcntl
 import select
 import subprocess
 
+
 class CmdResult(object):
     """A class representing the result of a system call.
     """
