@@ -3,6 +3,7 @@
 from virtTrinity import virsh
 from virtTrinity import utils
 
+
 def iter_command(command):
     """Iterate through all possible combinated command lines
     for a virsh sub command *command*.
@@ -17,6 +18,7 @@ def iter_command(command):
         result = utils.run(cmd_line, timeout=1.0)
         result.pprint()
 
+
 def fuzzer():
     """A fuzzer continuously run random virsh commands.
     """
@@ -25,6 +27,7 @@ def fuzzer():
         cmd_line = vsh.get_random_cmdline()
         result = utils.run(cmd_line, timeout=1.0)
         result.pprint()
+
 
 if __name__ == '__main__':
     fuzzer()

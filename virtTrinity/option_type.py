@@ -35,5 +35,3 @@ class OptionType(object):
             parse_fun = getattr(self, 'parse_' + opt_type)
             parsed_types.append(parse_fun(opt_name))
         return parsed_types
-
-
