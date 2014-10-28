@@ -3,6 +3,7 @@ import errno
 import time
 import fcntl
 import select
+import signal
 import subprocess
 
 
@@ -47,6 +48,7 @@ def run(cmdline, timeout=10):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         shell=True,
+        preexec_fn=os.setsid,
     )
 
     fcntl.fcntl(
@@ -63,7 +65,7 @@ def run(cmdline, timeout=10):
     result = CmdResult(cmdline)
 
     while True:
-        select.select([process.stdout, process.stderr], [], [])
+        select.select([process.stdout, process.stderr], [], [], 1.0)
         try:
             out_lines = process.stdout.read()
             if out_lines:
@@ -81,7 +83,8 @@ def run(cmdline, timeout=10):
         call_time = (time.time() - start)
 
         if call_time > timeout:
-            process.kill()
+            pgid = os.getpgid(process.pid)
+            os.killpg(pgid, signal.SIGKILL)
             result.call_time = call_time
             return result
 
