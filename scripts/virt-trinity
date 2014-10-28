@@ -29,7 +29,7 @@ def iter_command(command):
         result.pprint()
 
 
-def fuzzer(commands=[], excludes=[]):
+def fuzzer(commands=[], excludes=[], timeout=1.0):
     """A fuzzer continuously run random virsh commands.
     """
     vsh = virsh.Virsh()
@@ -44,14 +44,15 @@ def fuzzer(commands=[], excludes=[]):
             sys.exit(1)
 
         counter = 0
-        stat = {}
+        stat = {'total_time': 0, 0: 0, None: 0}
         while True:
             cmd_line = vsh.get_random_cmdline(commands)
-            result = utils.run(cmd_line, timeout=1.0)
+            result = utils.run(cmd_line, timeout=timeout)
             result.pprint()
 
             counter += 1
             res = result.exit_status
+            stat['total_time'] += result.call_time
             if res in stat:
                 stat[res] += 1
             else:
@@ -62,11 +63,13 @@ def fuzzer(commands=[], excludes=[]):
         print '----------'
         print
         print 'Test count   : %s' % counter
-        if 0 in stat:
-            print 'Success count: %s' % stat[0]
-            print 'Success rate : %s' % (stat[0] / float(counter))
-        if None in stat:
-            print 'Timeout count: %s' % stat[None]
+        print 'Test time    : %.2f' % stat['total_time']
+        print 'Ave call time: %.4f' % (
+            (stat['total_time'] - timeout * stat[None]) /
+            (counter - stat[None]))
+        print 'Success count: %s' % stat[0]
+        print 'Success rate : %s' % (stat[0] / float(counter))
+        print 'Timeout count: %s' % stat[None]
 
 
 if __name__ == '__main__':
