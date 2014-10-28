@@ -52,17 +52,17 @@ class Virsh(object):
                     cmdline += ' 123123'
         return cmdline
 
-    def get_random_cmd(self):
-        cmd_name = random.choice(self.commands.keys())
+    def get_random_cmd(self, commands=[]):
+        if commands:
+            cmd_name = random.choice(commands)
+        else:
+            cmd_name = random.choice(self.commands.keys())
+
         cmd = self.commands[cmd_name]
         return cmd
 
-    def get_random_cmdline(self, cmd_name=''):
-        if cmd_name:
-            command = self.commands[cmd_name]
-        else:
-            command = self.get_random_cmd()
-
+    def get_random_cmdline(self, commands=[]):
+        command = self.get_random_cmd(commands=commands)
         return self.gen_random_cmdline_from_cmd(command)
 
     def iter_cmdline(self, cmd_name):

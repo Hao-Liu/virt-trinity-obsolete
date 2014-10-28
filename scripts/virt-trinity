@@ -29,15 +29,24 @@ def iter_command(command):
         result.pprint()
 
 
-def fuzzer():
+def fuzzer(commands=[], excludes=[]):
     """A fuzzer continuously run random virsh commands.
     """
     vsh = virsh.Virsh()
     try:
+        if not commands:
+            commands = vsh.commands.keys()
+
+        commands = list(set(commands) - set(excludes))
+
+        if not commands:
+            print 'No command for running'
+            sys.exit(1)
+
         counter = 0
         stat = {}
         while True:
-            cmd_line = vsh.get_random_cmdline()
+            cmd_line = vsh.get_random_cmdline(commands)
             result = utils.run(cmd_line, timeout=1.0)
             result.pprint()
 
@@ -47,7 +56,6 @@ def fuzzer():
                 stat[res] += 1
             else:
                 stat[res] = 1
-
     except KeyboardInterrupt:
         print
         print 'Statistics'
