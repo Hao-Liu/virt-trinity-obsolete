@@ -65,7 +65,7 @@ def run(cmdline, timeout=10):
     result = CmdResult(cmdline)
 
     while True:
-        select.select([process.stdout, process.stderr], [], [], 1.0)
+        select.select([process.stdout, process.stderr], [], [], 0.1)
         try:
             out_lines = process.stdout.read()
             if out_lines:
