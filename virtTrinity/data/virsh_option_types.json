@@ -1,5 +1,11 @@
 {
     "attach-device": {
         "file": "device_xml"
+    },
+    "start": {
+        "pass-fds": "fd"
+    },
+    "reboot": {
+        "mode": "reboot_mode"
     }
 }
