@@ -38,6 +38,10 @@ setup(
 
     packages=['virtTrinity'],
 
+    data_files=[
+        ('virtTrinity/data', ['virtTrinity/data/virsh_option_types.json'])
+    ],
+
     cmdclass={
         'test': SelfTest,
     },

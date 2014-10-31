@@ -1,39 +1,54 @@
 import json
 import option_type
+import pkg_resources
 
 
 class Option(object):
+    specified_opt_types = None
 
-    def __init__(self, opt_line=''):
+    def __init__(self, opt_line='', command=None):
         self.required = False
 
-        if opt_line:
+        if Option.specified_opt_types is None:
+            json_str = pkg_resources.resource_string(
+                __name__, 'data/virsh_option_types.json')
+            Option.specified_opt_types = json.loads(json_str)
+
+        if opt_line and command:
             self.name, self.opt_type, self.desc = [
                 i.strip() for i in opt_line.split(' ', 2)]
 
-            if self.name == '<string>':
-                # Special case for 'virsh echo'
-                self.name = ''
-                self.opt_type = 'string'
-            else:
-                if self.name.startswith('[') and self.name.endswith(']'):
-                    self.name = self.name[1:-1]
-                    self.required = True
+            types = Option.specified_opt_types
+            cmd_name = command.short_name
+
+            if self.name.startswith('[') and self.name.endswith(']'):
+                self.name = self.name[1:-1]
+                self.required = True
+
+            if self.name.startswith('<') and self.name.endswith('>'):
+                self.name = self.name[1:-1]
+
+            if self.name.startswith('--'):
                 self.name = self.name[2:]
 
-                if self.opt_type == '<string>':
-                    if self.name == 'domain':
-                        self.opt_type = 'domain'
-                    elif self.name == 'pool':
-                        self.opt_type = 'pool'
-                    elif self.name == 'file':
-                        self.opt_type = 'file'
-                    else:
-                        self.opt_type = 'string'
-                elif self.opt_type == '<number>':
-                    self.opt_type = 'number'
+            if cmd_name in types and self.name in types[cmd_name]:
+                self.opt_type = types[cmd_name][self.name]
+            else:
+                if self.name == '<string>':
+                    # Special case for 'virsh echo'
+                    self.name = ''
+                    self.opt_type = 'string'
                 else:
-                    self.opt_type = 'bool'
+                    if self.opt_type == '<string>':
+                        known_types = ['domain', 'pool', 'file']
+                        if self.name in known_types:
+                            self.opt_type = self.name
+                        else:
+                            self.opt_type = 'string'
+                    elif self.opt_type == '<number>':
+                        self.opt_type = 'number'
+                    else:
+                        self.opt_type = 'bool'
 
             self.opt_type = option_type.OptionType(self.opt_type)
 

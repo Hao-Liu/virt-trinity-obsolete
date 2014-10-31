@@ -15,6 +15,7 @@ class Command(object):
             self.load_from_help(name)
 
     def load_from_help(self, name):
+        self.short_name = name
         help_txt = subprocess.check_output(
             ['virsh', 'help', name]).splitlines()
 
@@ -42,13 +43,12 @@ class Command(object):
         assert name == self.name.split()[0]
         assert self.synopsis
         self.parse_options()
-        self.short_name = name
 
     def parse_options(self):
         options = []
         if self.options:
             for opt_line in self.options:
-                options.append(option.Option(opt_line))
+                options.append(option.Option(opt_line, command=self))
         if '...' in self.synopsis:
             options[-1].argv = True
         self.options = options

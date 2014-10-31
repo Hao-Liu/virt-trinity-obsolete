@@ -28,6 +28,10 @@ class OptionType(object):
             'file',
             'not_set',
         ],
+        'device_xml': [
+            'device_xml',
+            'not_set',
+        ],
     }
 
     def __init__(self, type_name):
@@ -54,6 +58,9 @@ class OptionType(object):
 
     def parse_file(self):
         return 'virt-trinity-file'
+
+    def parse_device_xml(self):
+        return 'virt-trinity-device.xml'
 
     def parse_type(self, type_name):
         parse_fun = getattr(self, 'parse_' + type_name)
