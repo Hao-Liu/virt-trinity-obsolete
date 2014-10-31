@@ -64,31 +64,37 @@ def run(cmdline, timeout=10):
 
     result = CmdResult(cmdline)
 
-    while True:
-        select.select([process.stdout, process.stderr], [], [], 0.1)
-        try:
-            out_lines = process.stdout.read()
-            if out_lines:
-                for line in out_lines.splitlines():
-                    result.stdout.append(line)
-            err_lines = process.stderr.read()
-            if err_lines:
-                for line in err_lines.splitlines():
-                    result.stderr.append(line)
-        except IOError, detail:
-            if detail.errno != errno.EAGAIN:
-                raise detail
+    try:
+        while True:
+            select.select([process.stdout, process.stderr], [], [], 0.1)
+            try:
+                out_lines = process.stdout.read()
+                if out_lines:
+                    for line in out_lines.splitlines():
+                        result.stdout.append(line)
+                err_lines = process.stderr.read()
+                if err_lines:
+                    for line in err_lines.splitlines():
+                        result.stderr.append(line)
+            except IOError, detail:
+                if detail.errno != errno.EAGAIN:
+                    raise detail
 
-        exit_status = process.poll()
-        call_time = (time.time() - start)
+            exit_status = process.poll()
+            result.call_time = (time.time() - start)
 
-        if call_time > timeout:
+            if exit_status is not None:
+                result.exit_status = exit_status
+                return result
+
+            if result.call_time > timeout:
+                return result
+    finally:
+        if result.exit_status is None:
             pgid = os.getpgid(process.pid)
             os.killpg(pgid, signal.SIGKILL)
-            result.call_time = call_time
-            return result
 
-        if exit_status is not None:
-            result.call_time = call_time
-            result.exit_status = exit_status
-            return result
+        # Reset tty to clean console caused by killing console or editor
+        subprocess.call(["stty", "sane"])
+        # Restore disabled scrolling caused by killing editor
+        subprocess.call(["tput", "rmcup"])
