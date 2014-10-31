@@ -46,7 +46,7 @@ def fuzzer(commands=[], excludes=[], timeout=1.0):
         counter = 0
         stat = {'total_time': 0, 0: 0, None: 0}
         while True:
-            cmd_line = vsh.get_random_cmdline(commands)
+            cmd_line = vsh.random_cmdline(commands)
             result = utils.run(cmd_line, timeout=timeout)
             result.pprint()
 
@@ -73,4 +73,4 @@ def fuzzer(commands=[], excludes=[], timeout=1.0):
 
 
 if __name__ == '__main__':
-    fuzzer()
+    fuzzer(commands=[], excludes=[])

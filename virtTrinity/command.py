@@ -62,17 +62,24 @@ class Command(object):
             if key == 'options':
                 options = []
                 for opt_dict in json_dict[key]:
-                    opt = option.Option()
-                    for opt_key in opt_dict:
-                        setattr(opt, opt_key, opt_dict[opt_key])
+                    opt_json = json.dumps(opt_dict)
+                    opt = option.Option.from_json(opt_json)
                     options.append(opt)
                 value = options
             setattr(cmd, key, value)
         return cmd
 
     def to_json(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-                          sort_keys=True, indent=4)
+        json_dict = {}
+        for key in self.__dict__:
+            value = getattr(self, key)
+            if key == 'options':
+                value = []
+                for option in self.options:
+                    value.append(json.loads(option.to_json()))
+            json_dict[key] = value
+
+        return json.dumps(json_dict, sort_keys=True, indent=4)
 
     def __str__(self):
         return self.short_name
