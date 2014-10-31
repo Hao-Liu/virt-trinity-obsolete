@@ -88,5 +88,5 @@ class Option(object):
             return result_line
 
     def type_list(self):
-        all_types = self.opt_type.parse_types(self.name)
+        all_types = self.opt_type.parse_types()
         return all_types

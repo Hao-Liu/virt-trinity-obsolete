@@ -29,7 +29,7 @@ def iter_command(command):
         result.pprint()
 
 
-def fuzzer(commands=[], excludes=[], timeout=1.0):
+def fuzzer(commands=[], excludes=[], timeout=5.0):
     """A fuzzer continuously run random virsh commands.
     """
     vsh = virsh.Virsh()
