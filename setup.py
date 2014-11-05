@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import io
+import glob
 from setuptools import setup
 from setuptools.command.test import test
 import virtTrinity
@@ -39,7 +40,10 @@ setup(
     packages=['virtTrinity'],
 
     data_files=[
-        ('virtTrinity/data', ['virtTrinity/data/virsh_option_types.json'])
+        ('virtTrinity/data', ['virtTrinity/data/virsh_option_types.json']),
+        ('virtTrinity/data/html', glob.glob('virtTrinity/data/html/*.html')),
+        ('virtTrinity/data/css', glob.glob('virtTrinity/data/css/*.css')),
+        ('virtTrinity/data/js', glob.glob('virtTrinity/data/js/*.js')),
     ],
 
     cmdclass={

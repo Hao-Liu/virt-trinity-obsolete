@@ -18,6 +18,24 @@ class CmdResult(object):
         self.exit_status = None
         self.call_time = 0.0
 
+    def prepare_for_html(self):
+        stdout = "\n".join(self.stdout)
+        stderr = "\n".join(self.stderr)
+
+        if self.exit_status is None:
+            exit_status = "timeout"
+        elif self.exit_status == 0:
+            exit_status = "success"
+        elif self.exit_status > 0:
+            exit_status = "failure"
+
+        return {
+            "cmdline": self.cmdline,
+            "stdout": stdout,
+            "stderr": stderr,
+            "exit_status": exit_status,
+        }
+
     def pprint(self):
         """
         Print the command result in a pretty and colorful way.
