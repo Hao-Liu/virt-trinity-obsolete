@@ -3,6 +3,7 @@
 
 import os
 import sys
+import threading
 
 # simple magic for using scripts within a source tree
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -12,6 +13,8 @@ if os.path.isdir(os.path.join(base_dir, 'virtTrinity')):
 
 from virtTrinity import virsh
 from virtTrinity import utils
+from virtTrinity import server
+from virtTrinity import result_manager
 
 
 def iter_command(command):
@@ -32,6 +35,8 @@ def iter_command(command):
 def fuzzer(commands=[], excludes=[], timeout=5.0):
     """A fuzzer continuously run random virsh commands.
     """
+    # pylint: disable=E1101
+    result_mgr = result_manager.ResultManager.Instance()
     vsh = virsh.Virsh()
     try:
         if not commands:
@@ -48,6 +53,7 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
         while True:
             cmd_line = vsh.random_cmdline(commands)
             result = utils.run(cmd_line, timeout=timeout)
+            result_mgr.append(result)
             result.pprint()
 
             counter += 1
@@ -73,4 +79,11 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
 
 
 if __name__ == '__main__':
-    fuzzer(commands=[], excludes=[])
+    http_server = server.Server()
+    server_thread = threading.Thread(target=http_server.serve_forever)
+    server_thread.start()
+    try:
+        fuzzer(commands=[], excludes=[])
+    finally:
+        http_server.shutdown()
+        server_thread.join()

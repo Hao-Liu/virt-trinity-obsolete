@@ -1,0 +1,128 @@
+#sb-site {
+    box-shadow: 0 0 30px 10px rgba(0, 0, 0, 0.3);
+    padding: 50px 30px 30px 10px;
+    font-family: 'Open Sans',sans-serif;
+}
+
+#navbar {
+    z-index: 10000;
+    top: 0;
+    position: fixed;
+}
+
+.sb-toggle-left {
+    width: 58px;
+    float: left;
+    padding: 14px;
+}
+
+.sb-toggle-right {
+    width: 58px;
+    float: right;
+    padding: 14px;
+}
+
+.sb-toggle-left, .sb-toggle-right, .sb-open-left, .sb-open-right, .sb-close {
+    cursor: pointer;
+}
+
+.navicon-line {
+    width: 24px;
+    height: 4px;
+    border-radius: 1px;
+    margin-bottom: 3px;
+    background-color: #000;
+}
+
+.sb-slidebar {
+    background-color: #222;
+    color: #222;
+}
+
+.sb-slidebar a {
+    color: #FF3971;
+    font-size: 14px;
+    font-family: 'Open Sans',sans-serif;
+    text-decoration: none;
+}
+
+.sb-slidebar a:hover {
+    color: #e8e8e8;
+    text-decoration: underline;
+}
+
+.sb-menu {
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+}
+
+.sb-menu li {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.sb-menu > li:first-child {
+    border-top: none;
+}
+
+.sb-menu > li:last-child {
+    border-bottom: none;
+}
+
+.sb-menu li a {
+    width: 100%;
+    display: inline-block;
+    padding: 1em;
+    color: #f2f2f2;
+}
+
+.sb-menu li a:hover {
+    text-decoration: none;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sb-left .sb-menu li a {
+    border-left: 3px solid transparent;
+}
+
+.sb-left .sb-menu li a:hover {
+    border-left: 3px solid;
+}
+
+.sb-right .sb-menu li a {
+    border-right: 3px solid transparent;
+}
+
+.sb-right .sb-menu li a:hover {
+    border-right: 3px solid;
+}
+
+.sb-menu li .sb-open-right, .sb-menu li small {
+    display: inline-block;
+    padding: 14px;
+}
+
+.sb-menu li img {
+    margin: 14px;
+}
+
+.sb-slidebar, .sb-slidebar h3 {
+    color: #F0F0F0;
+}
+
+.sb-slidebar ul.sb-nav li a {
+    color: #DEDEDE;
+}
+
+.sb-slidebar ul.sb-nav li a:hover {
+    color: #C7C7C7;
+    text-decoration: none;
+}
+
+.sb-slidebar ul.sb-nav li span:hover {
+    color: #C7C7C7;
+}
