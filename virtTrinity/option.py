@@ -75,17 +75,9 @@ class Option(object):
             json_dict[key] = value
 
         return json.dumps(json_dict, sort_keys=True, indent=4)
-        pass
 
     def random(self):
-        opt_line = self.opt_type.random(required=self.required)
-        if opt_line is None:
-            return ''
-        else:
-            result_line = '--' + self.name
-            if opt_line:
-                result_line += ' %s' % opt_line
-            return result_line
+        return self.opt_type.random(required=self.required)
 
     def type_list(self):
         all_types = self.opt_type.parse_types()

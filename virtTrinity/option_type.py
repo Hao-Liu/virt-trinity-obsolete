@@ -10,17 +10,17 @@ class OptionType(object):
         return None
 
     def parse_number(self):
-        return random_lib.random_int()
+        return str(random_lib.random_int())
 
     def parse_string(self):
-        return random_lib.random_string(escape=True)
+        return random_lib.random_string()
 
     def parse_reboot_mode(self):
         return random.choice(
             ["acpi", "agent", "initctl", "signal", "paravirt"])
 
     def parse_fd(self):
-        return random_lib.random_string(escape=True)
+        return random_lib.random_string()
 
     def parse_pool(self):
         return 'virt-trinity-pool'

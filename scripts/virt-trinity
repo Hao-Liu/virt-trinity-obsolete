@@ -52,8 +52,8 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
         stat = {'total_time': 0, 0: 0, None: 0}
         while True:
             cmd_line = vsh.random_cmdline(commands)
-            result = utils.run(cmd_line, timeout=timeout)
-            result_mgr.append(result)
+            result = cmd_line.run(timeout=timeout)
+            result_mgr.append(cmd_line, result)
             result.pprint()
 
             counter += 1
