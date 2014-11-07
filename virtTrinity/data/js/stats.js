@@ -28,6 +28,11 @@ $(document).ready(function() {
 
     var updateChart = function() {
         $.getJSON("json/stats", function(stats) {
+            stats.forEach(function(stat) {
+                stat.click = function(e) {
+                    window.location.href = "/cmd/" + e.dataPoint.label;
+                };
+            })
             chart.options.data = stats;
             chart.render();
         });

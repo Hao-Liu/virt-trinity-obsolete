@@ -2,6 +2,7 @@ import os
 import json
 import random
 import command
+import cmdline
 import subprocess
 import itertools
 
@@ -48,14 +49,6 @@ class Virsh(object):
             with open('virsh_cmds.json', 'w') as json_file:
                 json_file.write(json_txt)
 
-    def random_cmdline_from_cmd(self, cmd):
-        cmdline = 'virsh ' + cmd.short_name
-        for option in cmd.options:
-            opt_line = option.random()
-            if opt_line:
-                cmdline += ' %s' % opt_line
-        return cmdline
-
     def random_cmd(self, commands=[]):
         if commands:
             cmd_name = random.choice(commands)
@@ -67,7 +60,7 @@ class Virsh(object):
 
     def random_cmdline(self, commands=[]):
         command = self.random_cmd(commands=commands)
-        return self.random_cmdline_from_cmd(command)
+        return cmdline.CmdLine(command)
 
     def iter_cmdline(self, cmd_name):
         command = self.commands[cmd_name]

@@ -50,6 +50,17 @@ class CmdResult(object):
             print '\033[91m%s\033[0m' % line
 
 
+def escape(org_str):
+    escapes = """~()[]{}<>|&$#?'"`*; \n\t\r\\"""
+    new_str = ""
+    for char in org_str:
+        if char in escapes:
+            new_str += '\\' + char
+        else:
+            new_str += char
+    return new_str
+
+
 def run(cmdline, timeout=10):
     """Run the command line and return the result with a CmdResult object.
 

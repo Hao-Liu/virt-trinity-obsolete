@@ -1,26 +1,28 @@
+import utils
 import random
 import string
 
 
-def random_string(escape=True, min_len=1, max_len=10):
+def random_string(escape=False, min_len=5, max_len=10):
     """
     Generate a randomized string.
     """
 
     excludes = "\n\t\r\x0b\x0c"
-    escapes = """~()[]{}<>|&$#?'"`*; \n\t\r\\"""
 
     chars = []
     for char in string.printable:
         if char not in excludes:
-            if char in escapes:
-                chars.append('\\' + char)
-            else:
-                chars.append(char)
+            chars.append(char)
 
     length = random.randint(min_len, max_len)
 
-    return ''.join(random.choice(chars) for _ in xrange(length))
+    result_str = ''.join(random.choice(chars) for _ in xrange(length))
+
+    if escape:
+        return utils.escape(result_str)
+    else:
+        return result_str
 
 
 def random_int():
