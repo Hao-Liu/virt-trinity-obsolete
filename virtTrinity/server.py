@@ -40,8 +40,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             html_dict = {"content": log_content}
             html_template = Template(load_file('data/html/main.html'))
             send_data = html_template.safe_substitute(html_dict)
-        elif self.path.startswith('/cmd/'):
-            cmd_name = self.path.lstrip('/cmd/')
+        elif self.path.startswith('/cmd'):
+            cmd_name = os.path.basename(self.path)
             cmd_content = load_file('data/html/cmd.html')
             html_dict = {"content": cmd_content}
             html_template = Template(load_file('data/html/main.html'))
@@ -56,9 +56,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             mimetype = 'application/json'
             send_data = json.dumps(self.result_mgr.log(log_idx, log_count))
-        elif self.path.startswith('/json/cmd-'):
+        elif self.path.startswith('/json/cmd'):
             _, cmd_name = self.path.split("-", 1)
-
             mimetype = 'application/json'
             send_data = json.dumps(self.result_mgr.cmd(cmd_name))
         elif self.path == '/json/stats':
