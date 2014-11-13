@@ -40,3 +40,16 @@
     border-left: 5px solid #fc0;
 }
 
+svg {
+    border: 1px solid #000;
+}
+
+.node {
+    stroke: #fff;
+    stroke-width: 1.5px;
+}
+
+.link {
+    stroke: #999;
+    stroke-opacity: .6;
+}

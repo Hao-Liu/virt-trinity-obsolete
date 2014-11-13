@@ -48,18 +48,17 @@ class ResultManager(object):
         self.result_stats = {}
 
     def append(self, cmd_line, result):
-        def canonicalize(cmd_line, result):
-            new_result = copy.copy(result)
-            for attr in ['stdout', 'stderr']:
-                text = '\n'.join(getattr(new_result, attr))
-                text = text.decode('utf-8')
-                for opt in cmd_line.options:
-                    line = opt['line']
-                    replacement = '${%s}' % opt['option'].name
-                    if line and line in text:
-                        text = text.replace(line, replacement)
-                setattr(new_result, attr, text)
-            return new_result
+        def sub(cmd_line, text):
+            if type(text) == list:
+                text = '\n'.join(text)
+
+            text = text.decode('utf-8')
+            for opt in cmd_line.options:
+                line = opt['line']
+                replacement = '${%s}' % opt['option'].name
+                if line and line in text:
+                    text = text.replace(line, replacement)
+            return text
 
         self.result_list.append(result)
         self.json_list.append(result.prepare_for_html())
@@ -77,26 +76,30 @@ class ResultManager(object):
                 "timeout": 0,
                 "success": 0,
                 "failure": 0,
-                "results": {},
+                "results": [],
             }
 
         self.result_stats[cmd_name][exit_status] += 1
-        new_result = canonicalize(cmd_line, result)
-        result_key = '\n'.join((
-            exit_status,
-            new_result.stdout,
-            new_result.stderr
-        ))
-        if result_key not in self.result_stats[cmd_name]["results"]:
-            self.result_stats[cmd_name]["results"][result_key] = {
-                'exit_status': exit_status,
-                'stdout': new_result.stdout,
-                'stderr': new_result.stderr,
-                'cmdlines': [],
-            }
 
-        self.result_stats[cmd_name]["results"][result_key]['cmdlines'].append(
-            str(cmd_line))
+        sub_stdout = sub(cmd_line, result.stdout)
+        sub_stderr = sub(cmd_line, result.stderr)
+        key = '\n'.join((
+            exit_status,
+            sub_stdout,
+            sub_stderr,
+        ))
+
+        result_json = {
+            "cmdline": str(cmd_line),
+            "exit_status": exit_status,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "sub_stdout": sub_stdout,
+            "sub_stderr": sub_stderr,
+            "key": key,
+        }
+
+        self.result_stats[cmd_name]["results"].append(result_json)
 
     def log(self, idx, count):
         total_len = len(self.json_list)
@@ -111,7 +114,7 @@ class ResultManager(object):
         if cmd_name in self.result_stats:
             return self.result_stats[cmd_name]["results"]
         else:
-            return {}
+            return []
 
     def stats(self):
         data = []

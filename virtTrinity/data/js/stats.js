@@ -27,10 +27,10 @@ $(document).ready(function() {
     var updateInterval = 1000;
 
     var updateChart = function() {
-        $.getJSON("json/stats", function(stats) {
+        $.getJSON("/json/stats", function(stats) {
             stats.forEach(function(stat) {
                 stat.click = function(e) {
-                    window.location.href = "/cmd/" + e.dataPoint.label;
+                    window.location.href = "/cmdlist/" + e.dataPoint.label;
                 };
             })
             chart.options.data = stats;
