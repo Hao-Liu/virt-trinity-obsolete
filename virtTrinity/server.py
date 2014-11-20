@@ -1,14 +1,12 @@
 import os
 import json
-import result_manager
+import database
 import pkg_resources
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import BaseHTTPServer
 from string import Template
 
 
-class RequestHandler(BaseHTTPRequestHandler):
-    # pylint: disable=E1101
-    result_mgr = result_manager.ResultManager.Instance()
+class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         return
@@ -20,6 +18,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         send_data = ''
         mimetype = 'text/html'
+        db = database.Database()
         if self.path.endswith('.js'):
             mimetype = 'application/javascript'
             file_name = os.path.basename(self.path)
@@ -55,14 +54,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             log_count = int(log_count)
 
             mimetype = 'application/json'
-            send_data = json.dumps(self.result_mgr.log(log_idx, log_count))
+            send_data = json.dumps(db.get_results(log_idx, log_count))
         elif self.path.startswith('/json/cmd'):
             _, cmd_name = self.path.split("-", 1)
             mimetype = 'application/json'
-            send_data = json.dumps(self.result_mgr.cmd(cmd_name))
+            send_data = json.dumps(db.get_command(cmd_name))
         elif self.path == '/json/stats':
             mimetype = 'application/json'
-            send_data = json.dumps(self.result_mgr.stats())
+            send_data = json.dumps(db.get_stat())
 
         return send_data, mimetype
 
@@ -77,8 +76,30 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(send_data)
         except Exception, detail:
             print "Error parsing path %s: %s" % (self.path, detail)
+            raise
+
+    def do_POST(self):
+        db = database.Database()
+        try:
+            length = int(self.headers['Content-Length'])
+            content = json.loads(self.rfile.read(length).decode('utf-8'))
+            self.send_response(200)
+            self.send_header('Content-type', "application/json")
+            self.end_headers()
+
+            if self.path == '/run':
+                db.update_run(content)
+            elif self.path == '/result':
+                db.insert_result(content)
+
+            self.wfile.write("{}")
+        except Exception, detail:
+            print "Error parsing path %s: %s" % (self.path, detail)
+            raise
 
 
-class Server(HTTPServer):
+class Server(BaseHTTPServer.HTTPServer):
     def __init__(self):
-        HTTPServer.__init__(self, ("127.0.0.1", 8000), RequestHandler)
+        BaseHTTPServer.HTTPServer.__init__(
+            self, ("127.0.0.1", 8000), RequestHandler)
+        database.Database().create()
