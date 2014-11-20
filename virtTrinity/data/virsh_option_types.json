@@ -1,5 +1,10 @@
 {
     "attach-device": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ],
         "file": "device_xml"
     },
     "start": {

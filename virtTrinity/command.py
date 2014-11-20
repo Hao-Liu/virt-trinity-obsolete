@@ -48,7 +48,9 @@ class Command(object):
         options = []
         if self.options:
             for opt_line in self.options:
-                options.append(option.Option(opt_line, command=self))
+                options.append(
+                    option.Option.from_help(
+                        opt_line, self.short_name))
         if '...' in self.synopsis:
             options[-1].argv = True
         self.options = options
