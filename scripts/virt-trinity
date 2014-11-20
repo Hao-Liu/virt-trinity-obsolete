@@ -48,7 +48,7 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
         sys.exit(1)
 
     counter = 0
-    stat = {'total_time': 0, 0: 0, None: 0}
+    stat = {'total_time': 0, 'success': 0, 'timeout': 0}
 
     cli = client.Client()
     run_id = uuid.uuid4()
@@ -75,11 +75,11 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
         print 'Test count   : %s' % counter
         print 'Test time    : %.2f' % stat['total_time']
         print 'Ave call time: %.4f' % (
-            (stat['total_time'] - timeout * stat[None]) /
-            (counter - stat[None]))
-        print 'Success count: %s' % stat[0]
-        print 'Success rate : %s' % (stat[0] / float(counter))
-        print 'Timeout count: %s' % stat[None]
+            (stat['total_time'] - timeout * stat['timeout']) /
+            (counter - stat['timeout']))
+        print 'Success count: %s' % stat['success']
+        print 'Success rate : %s' % (stat['success'] / float(counter))
+        print 'Timeout count: %s' % stat['timeout']
 
 
 if __name__ == '__main__':
