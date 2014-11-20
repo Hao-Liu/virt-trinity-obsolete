@@ -3,6 +3,7 @@
 
 import os
 import sys
+import uuid
 import threading
 
 # simple magic for using scripts within a source tree
@@ -14,7 +15,7 @@ if os.path.isdir(os.path.join(base_dir, 'virtTrinity')):
 from virtTrinity import virsh
 from virtTrinity import utils
 from virtTrinity import server
-from virtTrinity import result_manager
+from virtTrinity import client
 
 
 def iter_command(command):
@@ -35,26 +36,28 @@ def iter_command(command):
 def fuzzer(commands=[], excludes=[], timeout=5.0):
     """A fuzzer continuously run random virsh commands.
     """
-    # pylint: disable=E1101
-    result_mgr = result_manager.ResultManager.Instance()
     vsh = virsh.Virsh()
+
+    if not commands:
+        commands = vsh.commands.keys()
+
+    commands = list(set(commands) - set(excludes))
+
+    if not commands:
+        print 'No command for running'
+        sys.exit(1)
+
+    counter = 0
+    stat = {'total_time': 0, 0: 0, None: 0}
+
+    cli = client.Client()
+    run_id = uuid.uuid4()
+    cli.start_run(run_id)
     try:
-        if not commands:
-            commands = vsh.commands.keys()
-
-        commands = list(set(commands) - set(excludes))
-
-        if not commands:
-            print 'No command for running'
-            sys.exit(1)
-
-        counter = 0
-        stat = {'total_time': 0, 0: 0, None: 0}
         while True:
             cmd_line = vsh.random_cmdline(commands)
             result = cmd_line.run(timeout=timeout)
-            result_mgr.append(cmd_line, result)
-            result.pprint()
+            cli.send_result(run_id, counter, result)
 
             counter += 1
             res = result.exit_status
@@ -64,6 +67,7 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
             else:
                 stat[res] = 1
     except KeyboardInterrupt:
+        cli.end_run(run_id)
         print
         print 'Statistics'
         print '----------'

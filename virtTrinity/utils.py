@@ -15,7 +15,8 @@ class CmdResult(object):
         self.cmdline = cmdline
         self.stdout = []
         self.stderr = []
-        self.exit_status = None
+        self.exit_code = None
+        self.exit_status = "undefined"
         self.call_time = 0.0
 
     def prepare_for_html(self):
@@ -109,19 +110,24 @@ def run(cmdline, timeout=10):
                 if detail.errno != errno.EAGAIN:
                     raise detail
 
-            exit_status = process.poll()
+            exit_code = process.poll()
             result.call_time = (time.time() - start)
 
-            if exit_status is not None:
-                result.exit_status = exit_status
+            if exit_code is not None:
+                result.exit_code = exit_code
+                if exit_code == 0:
+                    result.exit_status = "success"
+                else:
+                    result.exit_status = "failure"
                 return result
 
             if result.call_time > timeout:
                 return result
     finally:
-        if result.exit_status is None:
+        if result.exit_code is None:
             pgid = os.getpgid(process.pid)
             os.killpg(pgid, signal.SIGKILL)
+            result.exit_status = "timeout"
 
         # Reset tty to clean console caused by killing console or editor
         subprocess.call(["stty", "sane"])

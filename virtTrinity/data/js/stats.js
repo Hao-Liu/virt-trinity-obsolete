@@ -24,16 +24,38 @@ $(document).ready(function() {
         }
     });
 
-    var updateInterval = 1000;
+    var updateInterval = 10000;
+    var color_map = {
+        "success": "#99ff00",
+        "failure": "#cc0000",
+        "timeout": "#ffcc00",
+    };
 
     var updateChart = function() {
         $.getJSON("/json/stats", function(stats) {
-            stats.forEach(function(stat) {
-                stat.click = function(e) {
+            data = [];
+            ['success', 'failure', 'timeout'].forEach(function(exit_status){
+                status_data = {
+                    "type": "stackedBar",
+                    "showInLegend": true,
+                    "name": exit_status,
+                    "axisYType": "secondary",
+                    "color": color_map[exit_status],
+                    "dataPoints": [],
+                };
+                stats.forEach(function(stat) {
+                    status_data.dataPoints.push({
+                        "label": stat[0],
+                        "y": stat[1][exit_status],
+                    });
+                });
+                status_data.click = function(e) {
                     window.location.href = "/cmdlist/" + e.dataPoint.label;
                 };
-            })
-            chart.options.data = stats;
+                data.push(status_data);
+            });
+            console.log(data);
+            chart.options.data = data;
             chart.render();
         });
     };
