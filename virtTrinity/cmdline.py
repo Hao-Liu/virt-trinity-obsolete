@@ -35,13 +35,13 @@ class CmdLine(object):
         self.command = command
         self.options = []
         if random:
-            self.name = command.short_name
+            self.name = command.name
             self.options = [
                 {
                     "option": opt,
                     "line": opt.random(),
                 }
-                for opt in command.options
+                for name, opt in command.options.items()
             ]
 
     def __str__(self):

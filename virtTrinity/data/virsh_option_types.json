@@ -5,12 +5,18 @@
             ["current", "persistent"],
             ["current", "config"]
         ],
-        "file": "device_xml"
+        "option_types": {
+            "file": "device_xml"
+        }
     },
     "start": {
-        "pass-fds": "fd"
+        "option_types": {
+            "pass-fds": "fd"
+        }
     },
     "reboot": {
-        "mode": "reboot_mode"
+        "option_types": {
+            "mode": "reboot_mode"
+        }
     }
 }

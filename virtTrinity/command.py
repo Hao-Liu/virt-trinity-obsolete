@@ -2,20 +2,35 @@ import re
 import json
 import option
 import subprocess
+import pkg_resources
 
 
 class Command(object):
-    name = ''
-    options = []
+    settings = json.loads(
+        pkg_resources.resource_string(
+            __name__, 'data/virsh_option_types.json'))
 
-    def __init__(self, name=''):
-        if name:
-            self.name = name
-            self.synopsis = ''
-            self.load_from_help(name)
+    def __init__(self):
+        self.options = {}
+        self.synopsis = ''
 
-    def load_from_help(self, name):
-        self.short_name = name
+    def _parse_options(self):
+        options = {}
+        if self.options:
+            last_name = ''
+            for opt_line in self.options:
+                opt = option.Option.from_help(
+                    opt_line, self.name)
+                options[opt.name] = opt
+                last_name = opt.name
+
+        if '...' in self.synopsis:
+            options[last_name].argv = True
+        self.options = options
+
+    @classmethod
+    def from_help(cls, name):
+        cmd = cls()
         help_txt = subprocess.check_output(
             ['virsh', 'help', name]).splitlines()
 
@@ -25,9 +40,9 @@ class Command(object):
             if re.match(r'^  [A-Z]*$', line):
                 if item_name:
                     if item_name == 'options':
-                        setattr(self, item_name, item_content)
+                        setattr(cmd, item_name, item_content)
                     else:
-                        setattr(self, item_name, ''.join(item_content))
+                        setattr(cmd, item_name, ''.join(item_content))
                     item_content = []
                 item_name = line.strip().lower()
             else:
@@ -35,38 +50,36 @@ class Command(object):
                     item_content.append(line.strip())
         if item_name:
             if item_name == 'options':
-                setattr(self, item_name, item_content)
+                setattr(cmd, item_name, item_content)
             else:
-                setattr(self, item_name, ''.join(item_content))
+                setattr(cmd, item_name, ''.join(item_content))
             item_content = []
 
-        assert name == self.name.split()[0]
-        assert self.synopsis
-        self.parse_options()
+        cmd.long_name = cmd.name
+        cmd.name = name
+        cmd._parse_options()
 
-    def parse_options(self):
-        options = []
-        if self.options:
-            for opt_line in self.options:
-                options.append(
-                    option.Option.from_help(
-                        opt_line, self.short_name))
-        if '...' in self.synopsis:
-            options[-1].argv = True
-        self.options = options
+        settings = Command.settings
+        if name in settings:
+            for item, content in settings[name].items():
+                if item == 'option_types':
+                    for opt_name, opt_type in content.items():
+                        cmd.options[opt_name].opt_type = opt_type
+                else:
+                    setattr(cmd, item, content)
+        return cmd
 
     @classmethod
     def from_json(cls, json_str):
         json_dict = json.loads(json_str)
         cmd = cls()
-        for key in json_dict:
-            value = json_dict[key]
+        for key, value in json_dict.items():
             if key == 'options':
-                options = []
-                for opt_dict in json_dict[key]:
+                options = {}
+                for opt_name, opt_dict in value.items():
                     opt_json = json.dumps(opt_dict)
                     opt = option.Option.from_json(opt_json)
-                    options.append(opt)
+                    options[opt.name] = opt
                 value = options
             setattr(cmd, key, value)
         return cmd
@@ -76,12 +89,12 @@ class Command(object):
         for key in self.__dict__:
             value = getattr(self, key)
             if key == 'options':
-                value = []
-                for option in self.options:
-                    value.append(json.loads(option.to_json()))
+                value = {}
+                for name, opt in self.options.items():
+                    value[name] = json.loads(opt.to_json())
             json_dict[key] = value
 
         return json.dumps(json_dict, sort_keys=True, indent=4)
 
     def __str__(self):
-        return self.short_name
+        return self.name

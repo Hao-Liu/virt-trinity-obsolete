@@ -18,7 +18,7 @@ class Virsh(object):
         for line in subprocess.check_output(['virsh', 'help']).splitlines():
             if line.startswith('    '):
                 cmd_name = line.split()[0]
-                virsh_cmds[cmd_name] = command.Command(cmd_name)
+                virsh_cmds[cmd_name] = command.Command.from_help(cmd_name)
         return virsh_cmds
 
     def to_json(self):
