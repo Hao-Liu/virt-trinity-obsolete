@@ -1,8 +1,10 @@
 import re
 import json
-import option
 import subprocess
 import pkg_resources
+
+import utils
+import option
 
 
 class Command(object):
@@ -98,3 +100,63 @@ class Command(object):
 
     def __str__(self):
         return self.name
+
+
+class VirshCmdResult(utils.CmdResult):
+    @classmethod
+    def from_result(cls, cmd, result):
+        def sub(cmd, text):
+            if type(text) == list:
+                text = '\n'.join(text)
+
+            text = text.decode('utf-8')
+            for opt in cmd.options:
+                line = opt['line']
+                replacement = '${%s}' % opt['option'].name
+                if line and line in text:
+                    text = text.replace(line, replacement)
+            return text
+        result.__class__ = cls
+        result.cmdname = cmd.command.name
+
+        result.sub_stdout = sub(cmd, result.stdout)
+        result.sub_stderr = sub(cmd, result.stderr)
+
+        result.key = '\n'.join((
+            result.exit_status,
+            result.sub_stdout,
+            result.sub_stderr,
+        ))
+        return result
+
+
+class RunnableCommand(object):
+
+    @classmethod
+    def random(cls, cmd_type):
+        cmd = cls()
+        cmd.command = cmd_type
+        cmd.options = [
+            {
+                "option": opt,
+                "line": opt.random(),
+            }
+            for name, opt in cmd_type.options.items()
+        ]
+        return cmd
+
+    def __str__(self):
+        cmd_line = 'virsh ' + self.command.name
+        for option in self.options:
+            if option['line'] is None:
+                continue
+            else:
+                result_line = '--' + option['option'].name
+                if option['line']:
+                    result_line += ' %s' % utils.escape(option['line'])
+                cmd_line += ' %s' % result_line
+        return cmd_line
+
+    def run(self, timeout=60):
+        cmd_result = utils.run(str(self), timeout=timeout)
+        return VirshCmdResult.from_result(self, cmd_result)
