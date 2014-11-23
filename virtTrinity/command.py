@@ -1,7 +1,9 @@
 import re
 import json
+import random
 import subprocess
 import pkg_resources
+import itertools
 
 import utils
 import option
@@ -136,13 +138,36 @@ class RunnableCommand(object):
     def random(cls, cmd_type):
         cmd = cls()
         cmd.command = cmd_type
+
+        exc_opts = set()
+        excs = []
+        combs = []
+        if hasattr(cmd.command, 'exclusives'):
+            excs = cmd.command.exclusives
+            exc_opts = set(itertools.chain.from_iterable(excs))
+
+        for comb_len in xrange(0, len(exc_opts)):
+            for comb in itertools.combinations(exc_opts, comb_len):
+                for exc_a, exc_b in excs:
+                    if exc_a not in comb and exc_b not in comb:
+                        combs.append(comb)
+        deconflicted_opts = random.choice(combs)
+
         cmd.options = [
             {
                 "option": opt,
                 "line": opt.random(),
             }
-            for name, opt in cmd_type.options.items()
+            for name, opt in cmd_type.options.items() if name not in exc_opts
         ]
+
+        for opt_name in deconflicted_opts:
+            opt = cmd_type.options[opt_name]
+            cmd.options.append({
+                "option": opt,
+                "line": opt.random(force_required=True)
+            })
+
         return cmd
 
     def __str__(self):

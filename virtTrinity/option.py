@@ -63,10 +63,13 @@ class Option(object):
             json_dict[key] = value
         return json.dumps(json_dict, sort_keys=True, indent=4)
 
-    def random(self):
+    def random(self, force_required=None):
+        required = self.required
+        if force_required is not None:
+            required = bool(force_required)
         return option_type.select(
             self.opt_type,
-            required=self.required
+            required=required
         )
 
     def type_list(self):
