@@ -146,13 +146,6 @@ class RunnableCommand(object):
             excs = cmd.command.exclusives
             exc_opts = set(itertools.chain.from_iterable(excs))
 
-        for comb_len in xrange(0, len(exc_opts)):
-            for comb in itertools.combinations(exc_opts, comb_len):
-                for exc_a, exc_b in excs:
-                    if exc_a not in comb and exc_b not in comb:
-                        combs.append(comb)
-        deconflicted_opts = random.choice(combs)
-
         cmd.options = [
             {
                 "option": opt,
@@ -161,7 +154,13 @@ class RunnableCommand(object):
             for name, opt in cmd_type.options.items() if name not in exc_opts
         ]
 
-        for opt_name in deconflicted_opts:
+        for comb_len in xrange(0, len(exc_opts)):
+            for comb in itertools.combinations(exc_opts, comb_len):
+                for exc_a, exc_b in excs:
+                    if exc_a not in comb and exc_b not in comb:
+                        combs.append(comb)
+
+        for opt_name in random.choice(combs):
             opt = cmd_type.options[opt_name]
             cmd.options.append({
                 "option": opt,

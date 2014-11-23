@@ -55,10 +55,6 @@ class Virsh(object):
             cmd_name = random.choice(self.commands.keys())
 
         cmd = self.commands[cmd_name]
-        return cmd
-
-    def random_cmdline(self, commands=[]):
-        cmd = self.random_cmd(commands=commands)
         return command.RunnableCommand.random(cmd)
 
     def iter_cmdline(self, cmd_name):
