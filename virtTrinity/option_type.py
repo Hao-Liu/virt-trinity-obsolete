@@ -1,50 +1,69 @@
+import utils
 import random
-import random_lib
+import string
 
 
-def parse_not_set():
+def random_not_set():
     return None
 
 
-def parse_number():
-    return str(random_lib.random_int())
+def random_number():
+    return str(random.randint(-2, 100))
 
 
-def parse_string():
-    return random_lib.random_string()
+def random_string(escape=False, min_len=5, max_len=10):
+    """
+    Generate a randomized string.
+    """
+
+    excludes = "\n\t\r\x0b\x0c"
+
+    chars = []
+    for char in string.printable:
+        if char not in excludes:
+            chars.append(char)
+
+    length = random.randint(min_len, max_len)
+
+    result_str = ''.join(random.choice(chars) for _ in xrange(length))
+
+    if escape:
+        return utils.escape(result_str)
+    else:
+        return result_str
 
 
-def parse_reboot_mode():
+def random_reboot_mode():
     return random.choice(
         ["acpi", "agent", "initctl", "signal", "paravirt"])
 
 
-def parse_fd():
-    return random_lib.random_string()
+def random_fd():
+    return random_string()
 
 
-def parse_pool():
+def random_pool():
     return 'virt-trinity-pool'
 
 
-def parse_bool():
+def random_bool():
     return ''
 
 
-def parse_domain():
+def random_domain():
     return 'virt-trinity-vm1'
 
 
-def parse_file():
+def random_file():
     return 'virt-trinity-file'
 
 
-def parse_device_xml():
+def random_device_xml():
     return 'virt-trinity-device.xml'
 
 
 def parse_type(type_name):
-    return globals()['parse_' + type_name]()
+    return globals()['random_' + type_name]()
 
 
 def parse_types(type_name):
