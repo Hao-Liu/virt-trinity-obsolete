@@ -10,6 +10,7 @@ import option
 
 
 class Command(object):
+    # pylint: disable=E1101
     settings = json.loads(
         pkg_resources.resource_string(
             __name__, 'data/virsh_option_types.json'))
@@ -113,8 +114,8 @@ class VirshCmdResult(utils.CmdResult):
 
             text = text.decode('utf-8')
             for opt in cmd.options:
-                line = opt['line']
-                replacement = '${%s}' % opt['option'].name
+                line = opt.line
+                replacement = '${%s}' % opt.option.name
                 if line and line in text:
                     text = text.replace(line, replacement)
             return text
@@ -134,6 +135,11 @@ class VirshCmdResult(utils.CmdResult):
 
 class RunnableCommand(object):
 
+    def __init__(self):
+        self.command = None
+        self.options = []
+        self.cmd_line = None
+
     @classmethod
     def random(cls, cmd_type):
         cmd = cls()
@@ -146,13 +152,15 @@ class RunnableCommand(object):
             excs = cmd.command.exclusives
             exc_opts = set(itertools.chain.from_iterable(excs))
 
-        cmd.options = [
-            {
-                "option": opt,
-                "line": opt.random(),
-            }
-            for name, opt in cmd_type.options.items() if name not in exc_opts
-        ]
+        cmd.options = []
+        cmd.pre_funcs = []
+        cmd.post_funcs = []
+        for name, opt in cmd_type.options.items():
+            if name not in exc_opts:
+                rnd_opt = opt.random()
+                cmd.pre_funcs.append(rnd_opt.pre)
+                cmd.post_funcs.append(rnd_opt.post)
+                cmd.options.append(rnd_opt)
 
         for comb_len in xrange(0, len(exc_opts)):
             for comb in itertools.combinations(exc_opts, comb_len):
@@ -160,27 +168,32 @@ class RunnableCommand(object):
                     if exc_a not in comb and exc_b not in comb:
                         combs.append(comb)
 
-        for opt_name in random.choice(combs):
-            opt = cmd_type.options[opt_name]
-            cmd.options.append({
-                "option": opt,
-                "line": opt.random(force_required=True)
-            })
+        if combs:
+            for opt_name in random.choice(combs):
+                opt = cmd_type.options[opt_name]
+                cmd.options.append(opt.random(force_required=True))
 
+        cmd.get_cmd_line()
         return cmd
 
-    def __str__(self):
-        cmd_line = 'virsh ' + self.command.name
-        for option in self.options:
-            if option['line'] is None:
-                continue
-            else:
-                result_line = '--' + option['option'].name
-                if option['line']:
-                    result_line += ' %s' % utils.escape(option['line'])
-                cmd_line += ' %s' % result_line
-        return cmd_line
+    def get_cmd_line(self):
+        if not self.cmd_line:
+            cmd_line = 'virsh ' + self.command.name
+            for option in self.options:
+                if option.line is None:
+                    continue
+                else:
+                    result_line = '--' + option.option.name
+                    if option.line:
+                        result_line += ' %s' % utils.escape(option.line)
+                    cmd_line += ' %s' % result_line
+            self.cmd_line = cmd_line
+        return self.cmd_line
 
     def run(self, timeout=60):
-        cmd_result = utils.run(str(self), timeout=timeout)
+        for func in self.pre_funcs:
+            func()
+        cmd_result = utils.run(self.cmd_line, timeout=timeout)
+        for func in self.post_funcs:
+            func()
         return VirshCmdResult.from_result(self, cmd_result)

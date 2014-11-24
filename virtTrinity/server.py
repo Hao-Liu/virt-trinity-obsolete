@@ -13,6 +13,7 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def parse_path(self):
         def load_file(file_name):
+            # pylint: disable=E1101
             return pkg_resources.resource_string(
                 __name__, file_name)
 

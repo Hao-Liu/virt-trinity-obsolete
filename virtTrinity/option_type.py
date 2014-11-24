@@ -1,14 +1,100 @@
 import utils
+import os
 import random
 import string
 
 
-def random_not_set():
-    return None
+class RandomOptionBase(object):
+    def __init__(self):
+        self.line = None
+        self.option = None
+
+    def pre(self):
+        pass
+
+    def post(self):
+        pass
 
 
-def random_number():
-    return str(random.randint(-2, 100))
+class RandomNotSet(RandomOptionBase):
+    pass
+
+
+class RandomString(RandomOptionBase):
+    def __init__(self):
+        self.line = random_string()
+
+
+class RandomNumber(RandomString):
+    def __init__(self):
+        self.line = str(random.randint(-2, 100))
+
+
+class RandomRebootMode(RandomString):
+    def __init__(self):
+        self.line = random.choice([
+            "acpi", "agent", "initctl", "signal", "paravirt"])
+
+
+class RandomFd(RandomString):
+    pass
+
+
+class RandomPool(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-pool'
+
+
+class RandomBool(RandomOptionBase):
+    def __init__(self):
+        self.line = ''
+
+
+class RandomDomain(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-vm1'
+
+
+class RandomFile(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-file'
+
+
+class RandomDeviceXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-device.xml'
+
+    def pre(self):
+        xml_content = """
+        <interface type='bridge'>
+            <source bridge='virbr0'/>
+        </interface>
+        """
+        with open('virt-trinity-device.xml', 'w') as xml_file:
+            xml_file.write(xml_content)
+
+    def post(self):
+        os.remove('virt-trinity-device.xml')
+
+
+def parse_type(type_name):
+    camel_name = ''.join([w.capitalize() for w in type_name.split('_')])
+    return globals()['Random' + camel_name]()
+
+
+def parse_types(type_name):
+    return [parse_type(type_name)
+            for name in [type_name, 'not_set']]
+
+
+def select(option, required=False):
+    opt_types = [option.opt_type]
+    if not required:
+        opt_types.append('not_set')
+    type_name = random.choice(opt_types)
+    res = parse_type(type_name)
+    res.option = option
+    return res
 
 
 def random_string(escape=False, min_len=5, max_len=10):
@@ -31,50 +117,3 @@ def random_string(escape=False, min_len=5, max_len=10):
         return utils.escape(result_str)
     else:
         return result_str
-
-
-def random_reboot_mode():
-    return random.choice(
-        ["acpi", "agent", "initctl", "signal", "paravirt"])
-
-
-def random_fd():
-    return random_string()
-
-
-def random_pool():
-    return 'virt-trinity-pool'
-
-
-def random_bool():
-    return ''
-
-
-def random_domain():
-    return 'virt-trinity-vm1'
-
-
-def random_file():
-    return 'virt-trinity-file'
-
-
-def random_device_xml():
-    return 'virt-trinity-device.xml'
-
-
-def parse_type(type_name):
-    return globals()['random_' + type_name]()
-
-
-def parse_types(type_name):
-    return [parse_type(type_name)
-            for name in [type_name, 'not_set']]
-
-
-def select(type_name, required=False):
-    opt_types = [type_name]
-    if not required:
-        opt_types.append('not_set')
-    type_name = random.choice(opt_types)
-    res = parse_type(type_name)
-    return res

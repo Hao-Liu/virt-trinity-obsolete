@@ -67,10 +67,7 @@ class Option(object):
         required = self.required
         if force_required is not None:
             required = bool(force_required)
-        return option_type.select(
-            self.opt_type,
-            required=required
-        )
+        return option_type.select(self, required=required)
 
     def type_list(self):
         all_types = option_type.parse_types(self.opt_type)
