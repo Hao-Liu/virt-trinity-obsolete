@@ -2,6 +2,7 @@ import utils
 import os
 import random
 import string
+from xml.etree import ElementTree
 
 
 class RandomOptionBase(object):
@@ -53,28 +54,63 @@ class RandomBool(RandomOptionBase):
 class RandomDomain(RandomString):
     def __init__(self):
         self.line = 'virt-trinity-vm1'
+        vm_names = [
+            name for name in
+            utils.run('virsh list --all --name').stdout.splitlines()
+            if name.startswith('virt-trinity-')
+        ]
+        if vm_names:
+            self.line = random.choice(vm_names)
 
 
 class RandomFile(RandomString):
     def __init__(self):
-        self.line = 'virt-trinity-file'
+        self.path = 'virt-trinity-file'
+        self.line = self.path
+        self.content = ''
+
+    def pre(self):
+        with open(self.path, 'w') as xml_file:
+            xml_file.write(self.content)
+
+    def post(self):
+        os.remove(self.path)
+
+
+class RandomVmXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-vm.xml'
+        self.path = self.line
+        self.content = """
+            <domain type='kvm'>
+              <name>virt-trinity-%s</name>
+              <memory>100000</memory>
+              <os><type>hvm</type></os>
+            </domain>""" % random.randint(1, 9)
 
 
 class RandomDeviceXml(RandomFile):
     def __init__(self):
         self.line = 'virt-trinity-device.xml'
-
-    def pre(self):
-        xml_content = """
+        self.path = self.line
+        self.content = """
         <interface type='bridge'>
             <source bridge='virbr0'/>
         </interface>
         """
-        with open('virt-trinity-device.xml', 'w') as xml_file:
-            xml_file.write(xml_content)
 
-    def post(self):
-        os.remove('virt-trinity-device.xml')
+
+class RandomExistingDeviceXml(RandomDeviceXml):
+    def __init__(self):
+        self.path = 'virt-trinity-device.xml'
+        self.line = self.path
+        self.content = '<>'
+        xml = utils.run('virsh dumpxml virt-trinity-vm1').stdout
+        if xml.strip():
+            root = ElementTree.fromstring(xml)
+            iface_xmls = root.findall("./devices/interface")
+            if iface_xmls:
+                self.content = ElementTree.tostring(random.choice(iface_xmls))
 
 
 def parse_type(type_name):

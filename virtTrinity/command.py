@@ -146,16 +146,30 @@ class RunnableCommand(object):
         exc_opts = set()
         excs = []
         combs = []
+        optionals = []
+        requires = []
         if hasattr(cmd.command, 'exclusives'):
             excs = cmd.command.exclusives
             exc_opts = set(itertools.chain.from_iterable(excs))
+
+        if hasattr(cmd.command, 'optionals'):
+            optionals = cmd.command.optionals
+
+        if hasattr(cmd.command, 'requires'):
+            requires = cmd.command.requires
 
         cmd.options = []
         cmd.pre_funcs = []
         cmd.post_funcs = []
         for name, opt in cmd_type.options.items():
             if name not in exc_opts:
-                rnd_opt = opt.random()
+                required = None
+                if name in optionals:
+                    required = False
+                if name in requires:
+                    required = True
+
+                rnd_opt = opt.random(force_required=required)
                 cmd.pre_funcs.append(rnd_opt.pre)
                 cmd.post_funcs.append(rnd_opt.post)
                 cmd.options.append(rnd_opt)

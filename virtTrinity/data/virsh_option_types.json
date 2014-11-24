@@ -9,10 +9,30 @@
             "file": "device_xml"
         }
     },
+    "detach-device": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ],
+        "option_types": {
+            "file": "existing_device_xml"
+        }
+    },
     "start": {
         "option_types": {
             "pass-fds": "fd"
         }
+    },
+    "define": {
+        "option_types": {
+            "file": "vm_xml"
+        }
+    },
+    "undefine": {
+        "optionals": [
+            "storage"
+        ]
     },
     "reboot": {
         "option_types": {
