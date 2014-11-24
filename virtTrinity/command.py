@@ -109,9 +109,6 @@ class VirshCmdResult(utils.CmdResult):
     @classmethod
     def from_result(cls, cmd, result):
         def sub(cmd, text):
-            if type(text) == list:
-                text = '\n'.join(text)
-
             text = text.decode('utf-8')
             for opt in cmd.options:
                 line = opt.line
@@ -119,6 +116,7 @@ class VirshCmdResult(utils.CmdResult):
                 if line and line in text:
                     text = text.replace(line, replacement)
             return text
+
         result.__class__ = cls
         result.cmdname = cmd.command.name
 
