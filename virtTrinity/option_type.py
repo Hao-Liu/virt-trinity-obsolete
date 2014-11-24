@@ -1,54 +1,155 @@
+import utils
+import os
 import random
-import random_lib
+import string
+from xml.etree import ElementTree
 
 
-class OptionType(object):
-    def __init__(self, type_name):
-        self.type_name = type_name
+class RandomOptionBase(object):
+    def __init__(self):
+        self.line = None
+        self.option = None
 
-    def parse_not_set(self):
-        return None
+    def pre(self):
+        pass
 
-    def parse_number(self):
-        return str(random_lib.random_int())
+    def post(self):
+        pass
 
-    def parse_string(self):
-        return random_lib.random_string()
 
-    def parse_reboot_mode(self):
-        return random.choice(
-            ["acpi", "agent", "initctl", "signal", "paravirt"])
+class RandomNotSet(RandomOptionBase):
+    pass
 
-    def parse_fd(self):
-        return random_lib.random_string()
 
-    def parse_pool(self):
-        return 'virt-trinity-pool'
+class RandomString(RandomOptionBase):
+    def __init__(self):
+        self.line = random_string()
 
-    def parse_bool(self):
-        return ''
 
-    def parse_domain(self):
-        return 'virt-trinity-vm1'
+class RandomNumber(RandomString):
+    def __init__(self):
+        self.line = str(random.randint(-2, 100))
 
-    def parse_file(self):
-        return 'virt-trinity-file'
 
-    def parse_device_xml(self):
-        return 'virt-trinity-device.xml'
+class RandomRebootMode(RandomString):
+    def __init__(self):
+        self.line = random.choice([
+            "acpi", "agent", "initctl", "signal", "paravirt"])
 
-    def parse_type(self, type_name):
-        parse_fun = getattr(self, 'parse_' + type_name)
-        return parse_fun()
 
-    def parse_types(self):
-        return [self.parse_type(name)
-                for name in [self.type_name, 'not_set']]
+class RandomFd(RandomString):
+    pass
 
-    def random(self, required=False):
-        opt_types = [self.type_name]
-        if not required:
-            opt_types.append('not_set')
-        type_name = random.choice(opt_types)
-        res = self.parse_type(type_name)
-        return res
+
+class RandomPool(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-pool'
+
+
+class RandomBool(RandomOptionBase):
+    def __init__(self):
+        self.line = ''
+
+
+class RandomDomain(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-vm1'
+        vm_names = [
+            name for name in
+            utils.run('virsh list --all --name').stdout.splitlines()
+            if name.startswith('virt-trinity-')
+        ]
+        if vm_names:
+            self.line = random.choice(vm_names)
+
+
+class RandomFile(RandomString):
+    def __init__(self):
+        self.path = 'virt-trinity-file'
+        self.line = self.path
+        self.content = ''
+
+    def pre(self):
+        with open(self.path, 'w') as xml_file:
+            xml_file.write(self.content)
+
+    def post(self):
+        os.remove(self.path)
+
+
+class RandomVmXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-vm.xml'
+        self.path = self.line
+        self.content = """
+            <domain type='kvm'>
+              <name>virt-trinity-%s</name>
+              <memory>100000</memory>
+              <os><type>hvm</type></os>
+            </domain>""" % random.randint(1, 9)
+
+
+class RandomDeviceXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-device.xml'
+        self.path = self.line
+        self.content = """
+        <interface type='bridge'>
+            <source bridge='virbr0'/>
+        </interface>
+        """
+
+
+class RandomExistingDeviceXml(RandomDeviceXml):
+    def __init__(self):
+        self.path = 'virt-trinity-device.xml'
+        self.line = self.path
+        self.content = '<>'
+        xml = utils.run('virsh dumpxml virt-trinity-vm1').stdout
+        if xml.strip():
+            root = ElementTree.fromstring(xml)
+            iface_xmls = root.findall("./devices/interface")
+            if iface_xmls:
+                self.content = ElementTree.tostring(random.choice(iface_xmls))
+
+
+def parse_type(type_name):
+    camel_name = ''.join([w.capitalize() for w in type_name.split('_')])
+    return globals()['Random' + camel_name]()
+
+
+def parse_types(type_name):
+    return [parse_type(type_name)
+            for name in [type_name, 'not_set']]
+
+
+def select(option, required=False):
+    opt_types = [option.opt_type]
+    if not required:
+        opt_types.append('not_set')
+    type_name = random.choice(opt_types)
+    res = parse_type(type_name)
+    res.option = option
+    return res
+
+
+def random_string(escape=False, min_len=5, max_len=10):
+    """
+    Generate a randomized string.
+    """
+
+    excludes = "\n\t\r\x0b\x0c"
+
+    chars = []
+    for char in string.printable:
+        if char not in excludes:
+            chars.append(char)
+
+    length = random.randint(min_len, max_len)
+
+    result_str = ''.join(random.choice(chars) for _ in xrange(length))
+
+    if escape:
+        return utils.escape(result_str)
+    else:
+        return result_str

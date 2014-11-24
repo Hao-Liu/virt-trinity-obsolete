@@ -2,7 +2,6 @@ import os
 import json
 import random
 import command
-import cmdline
 import subprocess
 import itertools
 
@@ -18,7 +17,7 @@ class Virsh(object):
         for line in subprocess.check_output(['virsh', 'help']).splitlines():
             if line.startswith('    '):
                 cmd_name = line.split()[0]
-                virsh_cmds[cmd_name] = command.Command(cmd_name)
+                virsh_cmds[cmd_name] = command.Command.from_help(cmd_name)
         return virsh_cmds
 
     def to_json(self):
@@ -56,29 +55,25 @@ class Virsh(object):
             cmd_name = random.choice(self.commands.keys())
 
         cmd = self.commands[cmd_name]
-        return cmd
-
-    def random_cmdline(self, commands=[]):
-        command = self.random_cmd(commands=commands)
-        return cmdline.CmdLine(command)
+        return command.RunnableCommand.random(cmd)
 
     def iter_cmdline(self, cmd_name):
-        command = self.commands[cmd_name]
-        if 'opt_iter' not in dir(command):
+        cmd = self.commands[cmd_name]
+        if 'opt_iter' not in dir(cmd):
             types_list = []
-            for option in command.options:
+            for option in cmd.options:
                 type_list = option.type_list()
                 if type_list:
                     types_list.append(type_list)
-            command.opt_iter = itertools.product(*types_list)
+            cmd.opt_iter = itertools.product(*types_list)
 
-        opt_list = [opt for opt in command.opt_iter.next() if opt]
+        opt_list = [opt for opt in cmd.opt_iter.next() if opt]
         return 'virsh %s ' % cmd_name + ' '.join(opt_list)
 
     def cmdline_generator(self, cmd_name):
-        command = self.commands[cmd_name]
+        cmd = self.commands[cmd_name]
         types_list = []
-        for option in command.options:
+        for option in cmd.options:
             type_list = option.type_list()
             if type_list:
                 types_list.append(type_list)

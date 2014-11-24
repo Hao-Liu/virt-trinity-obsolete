@@ -13,29 +13,11 @@ class CmdResult(object):
 
     def __init__(self, cmdline):
         self.cmdline = cmdline
-        self.stdout = []
-        self.stderr = []
+        self.stdout = ""
+        self.stderr = ""
         self.exit_code = None
         self.exit_status = "undefined"
         self.call_time = 0.0
-
-    def prepare_for_html(self):
-        stdout = "\n".join(self.stdout)
-        stderr = "\n".join(self.stderr)
-
-        if self.exit_status is None:
-            exit_status = "timeout"
-        elif self.exit_status == 0:
-            exit_status = "success"
-        elif self.exit_status > 0:
-            exit_status = "failure"
-
-        return {
-            "cmdline": self.cmdline,
-            "stdout": stdout,
-            "stderr": stderr,
-            "exit_status": exit_status,
-        }
 
     def pprint(self):
         """
@@ -45,9 +27,9 @@ class CmdResult(object):
 
         print '\033[94m%-177s\033[93m%-3s\033[0m%.3f' % (
             self.cmdline, self.exit_status, self.call_time)
-        for line in self.stdout:
+        for line in self.stdout.splitlines():
             print line
-        for line in self.stderr:
+        for line in self.stderr.splitlines():
             print '\033[91m%s\033[0m' % line
 
 
@@ -100,12 +82,10 @@ def run(cmdline, timeout=10):
             try:
                 out_lines = process.stdout.read()
                 if out_lines:
-                    for line in out_lines.splitlines():
-                        result.stdout.append(line)
+                    result.stdout += out_lines
                 err_lines = process.stderr.read()
                 if err_lines:
-                    for line in err_lines.splitlines():
-                        result.stderr.append(line)
+                    result.stderr += err_lines
             except IOError, detail:
                 if detail.errno != errno.EAGAIN:
                     raise detail

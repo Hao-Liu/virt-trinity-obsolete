@@ -1,59 +1,51 @@
 import json
 import option_type
-import pkg_resources
 
 
 class Option(object):
-    specified_opt_types = None
+    def _parse_help(self, help_line):
+        name, type_name, self.desc = [
+            i.strip() for i in help_line.split(' ', 2)]
 
-    def __init__(self, opt_line='', command=None):
-        self.required = False
+        if name.startswith('[') and name.endswith(']'):
+            name = name[1:-1]
+            self.required = True
 
-        if Option.specified_opt_types is None:
-            json_str = pkg_resources.resource_string(
-                __name__, 'data/virsh_option_types.json')
-            Option.specified_opt_types = json.loads(json_str)
-
-        if opt_line and command:
-            self.name, self.opt_type, self.desc = [
-                i.strip() for i in opt_line.split(' ', 2)]
-
-            types = Option.specified_opt_types
-            cmd_name = command.short_name
-
-            if self.name.startswith('[') and self.name.endswith(']'):
-                self.name = self.name[1:-1]
-                self.required = True
-
-            if self.name.startswith('<') and self.name.endswith('>'):
-                self.name = self.name[1:-1]
-
-            if self.name.startswith('--'):
-                self.name = self.name[2:]
-
-            if cmd_name in types and self.name in types[cmd_name]:
-                self.opt_type = types[cmd_name][self.name]
+        if name.startswith('<') and name.endswith('>'):
+            if name == '<string>':
+                # Special case for 'virsh echo'
+                name = ''
+                type_name = '<string>'
             else:
-                if self.name == '<string>':
-                    # Special case for 'virsh echo'
-                    self.name = ''
-                    self.opt_type = 'string'
-                else:
-                    if self.opt_type == '<string>':
-                        known_types = ['domain', 'pool', 'file']
-                        if self.name in known_types:
-                            self.opt_type = self.name
-                        else:
-                            self.opt_type = 'string'
-                    elif self.opt_type == '<number>':
-                        self.opt_type = 'number'
-                    else:
-                        self.opt_type = 'bool'
+                name = name[1:-1]
 
-            self.opt_type = option_type.OptionType(self.opt_type)
+        if name.startswith('--'):
+            name = name[2:]
+
+        self.name = name
+
+        if type_name == '<string>':
+            known_types = ['domain', 'pool', 'file']
+            if name in known_types:
+                type_name = name
+            else:
+                type_name = 'string'
+        elif type_name == '<number>':
+            type_name = 'number'
+        else:
+            type_name = 'bool'
+        self.opt_type = type_name
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def from_help(cls, opt_line, cmd_name):
+        option = cls()
+        option.required = False
+        option.cmd_name = cmd_name
+        option._parse_help(opt_line)
+        return option
 
     @classmethod
     def from_json(cls, json_str):
@@ -61,8 +53,6 @@ class Option(object):
         option = cls()
         for key in json_dict:
             value = json_dict[key]
-            if key == 'opt_type':
-                value = option_type.OptionType(value)
             setattr(option, key, value)
         return option
 
@@ -70,15 +60,15 @@ class Option(object):
         json_dict = {}
         for key in self.__dict__:
             value = getattr(self, key)
-            if key == 'opt_type':
-                value = self.opt_type.type_name
             json_dict[key] = value
-
         return json.dumps(json_dict, sort_keys=True, indent=4)
 
-    def random(self):
-        return self.opt_type.random(required=self.required)
+    def random(self, force_required=None):
+        required = self.required
+        if force_required is not None:
+            required = bool(force_required)
+        return option_type.select(self, required=required)
 
     def type_list(self):
-        all_types = self.opt_type.parse_types()
+        all_types = option_type.parse_types(self.opt_type)
         return all_types

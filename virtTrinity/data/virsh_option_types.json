@@ -1,11 +1,42 @@
 {
     "attach-device": {
-        "file": "device_xml"
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ],
+        "option_types": {
+            "file": "device_xml"
+        }
+    },
+    "detach-device": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ],
+        "option_types": {
+            "file": "existing_device_xml"
+        }
     },
     "start": {
-        "pass-fds": "fd"
+        "option_types": {
+            "pass-fds": "fd"
+        }
+    },
+    "define": {
+        "option_types": {
+            "file": "vm_xml"
+        }
+    },
+    "undefine": {
+        "optionals": [
+            "storage"
+        ]
     },
     "reboot": {
-        "mode": "reboot_mode"
+        "option_types": {
+            "mode": "reboot_mode"
+        }
     }
 }
