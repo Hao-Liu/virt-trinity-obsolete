@@ -33,7 +33,7 @@ $(document).ready(function() {
 
     var updateChart = function() {
         $.getJSON("/json/stats", function(stats) {
-            data = [];
+            var data = [];
             ['success', 'failure', 'timeout'].forEach(function(exit_status){
                 status_data = {
                     "type": "stackedBar",
@@ -54,7 +54,8 @@ $(document).ready(function() {
                 };
                 data.push(status_data);
             });
-            console.log(data);
+            var ncols = data[0].dataPoints.length;
+            $("#chartContainer").height(150 + ncols * 25);
             chart.options.data = data;
             chart.render();
         });
