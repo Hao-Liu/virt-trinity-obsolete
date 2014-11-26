@@ -44,9 +44,13 @@ $(document).ready(function() {
                     "dataPoints": [],
                 };
                 stats.forEach(function(stat) {
+                    var total = 0;
+                    for (var e in stat[1]) {
+                        total += stat[1][e];
+                    }
                     status_data.dataPoints.push({
                         "label": stat[0],
-                        "y": stat[1][exit_status],
+                        "y": stat[1][exit_status] * 100.0 / total,
                     });
                 });
                 status_data.click = function(e) {

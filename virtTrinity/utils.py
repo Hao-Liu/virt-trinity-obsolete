@@ -4,6 +4,7 @@ import time
 import fcntl
 import select
 import signal
+import random
 import subprocess
 
 
@@ -31,6 +32,17 @@ class CmdResult(object):
             print line
         for line in self.stderr.splitlines():
             print '\033[91m%s\033[0m' % line
+
+
+def weighted_choice(choices):
+    total = sum(choice.weight for choice in choices)
+    rnd_num = random.uniform(0, total)
+    upto = 0
+    for choice in choices:
+        if upto + choice.weight > rnd_num:
+            return choice
+        upto += choice.weight
+    assert False, "Shouldn't get here"
 
 
 def escape(org_str):

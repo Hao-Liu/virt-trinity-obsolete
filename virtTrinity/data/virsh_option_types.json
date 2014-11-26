@@ -22,7 +22,8 @@
     "start": {
         "option_types": {
             "pass-fds": "fd"
-        }
+        },
+        "weight": 100
     },
     "define": {
         "option_types": {

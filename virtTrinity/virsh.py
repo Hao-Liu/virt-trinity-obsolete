@@ -1,9 +1,10 @@
 import os
 import json
-import random
 import command
 import subprocess
 import itertools
+
+import utils
 
 
 class Virsh(object):
@@ -50,11 +51,11 @@ class Virsh(object):
 
     def random_cmd(self, commands=[]):
         if commands:
-            cmd_name = random.choice(commands)
+            cmds = [self.commands[name] for name in commands]
+            cmd = utils.weighted_choice(cmds)
         else:
-            cmd_name = random.choice(self.commands.keys())
+            cmd = utils.weighted_choice(self.commands)
 
-        cmd = self.commands[cmd_name]
         return command.RunnableCommand.random(cmd)
 
     def iter_cmdline(self, cmd_name):
