@@ -111,6 +111,22 @@ class VirshCmdResult(utils.CmdResult):
     def from_result(cls, cmd, result):
         def sub(cmd, text):
             text = text.decode('utf-8')
+            if hasattr(cmd.command, 'result_patterns'):
+                for patt in cmd.command.result_patterns:
+                    re_patt = patt
+                    patt_vars = re.findall('\$\{(.*)\}', patt)
+                    for patt_var in patt_vars:
+                        re_name = patt_var
+                        re_str = '.*'
+
+                        if ':' in patt_var:
+                            re_name, re_str = patt_var.split(':', 1)
+
+                        re_patt = re.sub(
+                            re.escape('${%s}' % patt_var), re_str, re_patt)
+                        text = re.sub(
+                            re_patt, patt.replace(patt_var, re_name), text)
+
             for opt in cmd.options:
                 line = opt.line
                 replacement = '${%s}' % opt.option.name

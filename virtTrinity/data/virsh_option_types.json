@@ -9,6 +9,20 @@
             "file": "device_xml"
         }
     },
+    "attach-disk": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ]
+    },
+    "attach-interface": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ]
+    },
     "detach-device": {
         "exclusives": [
             ["current", "live"],
@@ -19,20 +33,103 @@
             "file": "existing_device_xml"
         }
     },
+    "blkdeviotune": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "blkiotune": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "invalid value '${string}' for parameter '${param}' of device '${string}'"
+        ]
+    },
+    "blockcommit": {
+        "exclusives": [
+            ["pivot", "keep-overlay"]
+        ],
+        "depends": [
+            ["async", "wait"],
+            ["verbose", "wait"]
+        ]
+
+    },
+    "blockcopy": {
+        "exclusives": [
+            ["pivot", "finish"]
+        ],
+        "depends": [
+            ["async", "wait"],
+            ["verbose", "wait"]
+        ]
+    },
+    "blockjob": {
+        "exclusives": [
+            ["abort", "info"],
+            ["info", "bandwidth"],
+            ["abort", "bandwidth"]
+        ]
+    },
+    "blockpull": {
+        "depends": [
+            ["async", "wait"],
+            ["verbose", "wait"]
+        ]
+    },
+    "change-media": {
+        "exclusives": [
+            ["current", "live"],
+            ["eject", "insert"],
+            ["insert", "update"],
+            ["eject", "update"]
+        ]
+    },
+    "create": {
+        "option_types": {
+            "pass-fds": "fd"
+        },
+        "result_patterns": [
+            "Unable to parse FD number '${pass-fds}'"
+        ]
+    },
+    "desc": {
+        "result_patterns": [
+            "${ctrl-chars}\\nVim: Warning: Output is not to a terminal"
+        ]
+    },
+    "edit": {
+        "result_patterns": [
+            "/tmp/virsh${file}.xml"
+        ]
+    },
     "start": {
         "option_types": {
             "pass-fds": "fd"
         },
+        "result_patterns": [
+            "Unable to parse FD number '${pass-fds}'"
+        ],
         "weight": 100
     },
     "define": {
         "option_types": {
             "file": "vm_xml"
-        }
+        },
+        "result_patterns": [
+            "domain '${domain}' already exists with uuid ${domuuid}",
+            "Domain ${domain} defined from"
+        ]
     },
     "undefine": {
         "optionals": [
             "storage"
+        ],
+        "result_patterns": [
+            "Volume '${storage}' was not found in domain's definition."
         ]
     },
     "reboot": {
