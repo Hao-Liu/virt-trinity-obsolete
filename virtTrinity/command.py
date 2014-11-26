@@ -18,6 +18,7 @@ class Command(object):
     def __init__(self):
         self.options = {}
         self.synopsis = ''
+        self.weight = 1.0
 
     def _parse_options(self):
         options = {}
