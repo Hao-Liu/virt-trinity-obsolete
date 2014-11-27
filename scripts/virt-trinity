@@ -37,6 +37,7 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
     """A fuzzer continuously run random virsh commands.
     """
     vsh = virsh.Virsh()
+    os.environ["EDITOR"] = "echo"
 
     if not commands:
         commands = vsh.commands.keys()
