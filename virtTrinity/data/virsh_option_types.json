@@ -306,9 +306,52 @@
             ["current", "config"]
         ]
     },
+    "pool-build": {
+        "exclusives": [
+            ["overwrite", "no-overwrite"]
+        ]
+    },
+    "pool-create": {
+        "option_types": {
+            "file": "pool_xml"
+        },
+        "result_patterns": [
+            "pool '${pool}' already exists with uuid ${domuuid}",
+            "Pool ${pool} created from"
+        ]
+    },
+    "pool-define": {
+        "option_types": {
+            "file": "pool_xml"
+        },
+        "result_patterns": [
+            "pool '${pool}' already exists with uuid ${domuuid}",
+            "Pool ${pool} defined from"
+        ]
+    },
+    "pool-delete": {
+        "result_patterns": [
+            "failed to remove pool '${path}'"
+        ]
+    },
+    "pool-edit": {
+        "result_patterns": [
+            "/tmp/virsh${file}.xml"
+        ]
+    },
     "pool-list": {
         "result_patterns": [
             "Invalid pool type '${type}'"
+        ]
+    },
+    "pool-start": {
+        "result_patterns": [
+            "cannot open path '${path}'"
+        ]
+    },
+    "pool-uuid": {
+        "result_patterns": [
+            "${uuid:[0-9a-f]+}"
         ]
     },
     "qemu-agent-command": {
@@ -483,6 +526,14 @@
     "vol-clone": {
         "result_patterns": [
             "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-create": {
+        "option_types": {
+            "file": "vol_xml"
+        },
+        "result_patterns": [
+            "Vol ${vol} created from"
         ]
     },
     "vol-delete": {

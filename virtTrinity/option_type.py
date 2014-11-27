@@ -1,5 +1,6 @@
 import utils
 import os
+import errno
 import random
 import string
 from xml.etree import ElementTree
@@ -43,7 +44,28 @@ class RandomFd(RandomString):
 
 class RandomPool(RandomString):
     def __init__(self):
-        self.line = 'virt-trinity-pool'
+        self.line = 'virt-trinity-pool-1'
+        pool_names = []
+        for line in utils.run('virsh -q pool-list --all').stdout.splitlines():
+            name = line.strip().split()[0]
+            if name.startswith('virt-trinity-pool-'):
+                pool_names.append(name)
+
+        if pool_names:
+            self.line = random.choice(pool_names)
+
+
+class RandomVol(RandomString):
+    def __init__(self):
+        self.line = 'virt-trinity-vol-1'
+        pool_names = []
+        for line in utils.run('virsh -q vol-list --all').stdout.splitlines():
+            name = line.strip().split()[0]
+            if name.startswith('virt-trinity-vol-'):
+                pool_names.append(name)
+
+        if pool_names:
+            self.line = random.choice(pool_names)
 
 
 class RandomBool(RandomOptionBase):
@@ -53,7 +75,7 @@ class RandomBool(RandomOptionBase):
 
 class RandomDomain(RandomString):
     def __init__(self):
-        self.line = 'virt-trinity-vm1'
+        self.line = 'virt-trinity-1'
         vm_names = [
             name for name in
             utils.run('virsh list --all --name').stdout.splitlines()
@@ -98,6 +120,51 @@ class RandomDeviceXml(RandomFile):
             <source bridge='virbr0'/>
         </interface>
         """
+
+
+class RandomPoolXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-pool.xml'
+        self.path = self.line
+        self.number = random.randint(1, 9)
+        self.content = """
+        <pool type='dir'>
+            <name>virt-trinity-pool-%s</name>
+          <target>
+              <path>/var/lib/virt-trinity/pools/%s</path>
+          </target>
+        </pool>
+        """ % (self.number, self.number)
+
+    def pre(self):
+        path = "/var/lib/virt-trinity/pools/%s" % self.number
+
+        try:
+            os.makedirs(path)
+        except OSError as exc:
+            if exc.errno == errno.EEXIST and os.path.isdir(path):
+                pass
+            else:
+                raise
+
+        with open(self.path, 'w') as xml_file:
+            xml_file.write(self.content)
+
+
+class RandomVolXml(RandomFile):
+    def __init__(self):
+        self.line = 'virt-trinity-vol.xml'
+        self.path = self.line
+        self.number = random.randint(1, 9)
+        self.content = """
+        <volume type='file'>
+          <name>virt-trinity-vol-%s</name>
+          <capacity unit='bytes'>1000</capacity>
+          <target>
+            <path>virt-trinity-vol-%s</path>
+          </target>
+        </volume>
+        """ % (self.number, self.number)
 
 
 class RandomExistingDeviceXml(RandomDeviceXml):
