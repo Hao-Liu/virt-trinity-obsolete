@@ -7,7 +7,7 @@ from xml.etree import ElementTree
 
 
 class RandomOptionBase(object):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = None
         self.option = None
 
@@ -23,17 +23,17 @@ class RandomNotSet(RandomOptionBase):
 
 
 class RandomString(RandomOptionBase):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = random_string()
 
 
 class RandomNumber(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = str(random.randint(-2, 100))
 
 
 class RandomRebootMode(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = random.choice([
             "acpi", "agent", "initctl", "signal", "paravirt"])
 
@@ -43,7 +43,7 @@ class RandomFd(RandomString):
 
 
 class RandomPool(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-pool-1'
         pool_names = []
         for line in utils.run('virsh -q pool-list --all').stdout.splitlines():
@@ -56,25 +56,29 @@ class RandomPool(RandomString):
 
 
 class RandomVol(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-vol-1'
-        pool_names = []
-        for line in utils.run('virsh -q vol-list --all').stdout.splitlines():
+        pool_name = 'virt-trinity-pool-1'
+        if 'pool' in opt_args:
+            pool_name = opt_args['pool']
+        vol_names = []
+        for line in utils.run('virsh -q vol-list %s' %
+                              pool_name).stdout.splitlines():
             name = line.strip().split()[0]
             if name.startswith('virt-trinity-vol-'):
-                pool_names.append(name)
+                vol_names.append(name)
 
-        if pool_names:
-            self.line = random.choice(pool_names)
+        if vol_names:
+            self.line = random.choice(vol_names)
 
 
 class RandomBool(RandomOptionBase):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = ''
 
 
 class RandomDomain(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-1'
         vm_names = [
             name for name in
@@ -86,7 +90,7 @@ class RandomDomain(RandomString):
 
 
 class RandomFile(RandomString):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.path = 'virt-trinity-file'
         self.line = self.path
         self.content = ''
@@ -100,7 +104,7 @@ class RandomFile(RandomString):
 
 
 class RandomVmXml(RandomFile):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-vm.xml'
         self.path = self.line
         self.content = """
@@ -112,7 +116,7 @@ class RandomVmXml(RandomFile):
 
 
 class RandomDeviceXml(RandomFile):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-device.xml'
         self.path = self.line
         self.content = """
@@ -123,7 +127,7 @@ class RandomDeviceXml(RandomFile):
 
 
 class RandomPoolXml(RandomFile):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-pool.xml'
         self.path = self.line
         self.number = random.randint(1, 9)
@@ -135,6 +139,7 @@ class RandomPoolXml(RandomFile):
           </target>
         </pool>
         """ % (self.number, self.number)
+        opt_args['pool'] = 'virt-trinit-pool-%s' % self.number
 
     def pre(self):
         path = "/var/lib/virt-trinity/pools/%s" % self.number
@@ -152,7 +157,7 @@ class RandomPoolXml(RandomFile):
 
 
 class RandomVolXml(RandomFile):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.line = 'virt-trinity-vol.xml'
         self.path = self.line
         self.number = random.randint(1, 9)
@@ -168,7 +173,7 @@ class RandomVolXml(RandomFile):
 
 
 class RandomExistingDeviceXml(RandomDeviceXml):
-    def __init__(self):
+    def __init__(self, opt_args):
         self.path = 'virt-trinity-device.xml'
         self.line = self.path
         self.content = '<>'
@@ -180,22 +185,22 @@ class RandomExistingDeviceXml(RandomDeviceXml):
                 self.content = ElementTree.tostring(random.choice(iface_xmls))
 
 
-def parse_type(type_name):
+def parse_type(type_name, opt_args):
     camel_name = ''.join([w.capitalize() for w in type_name.split('_')])
-    return globals()['Random' + camel_name]()
+    return globals()['Random' + camel_name](opt_args)
 
 
-def parse_types(type_name):
-    return [parse_type(type_name)
+def parse_types(type_name, opt_args={}):
+    return [parse_type(type_name, opt_args)
             for name in [type_name, 'not_set']]
 
 
-def select(option, required=False):
+def select(option, opt_args, required=False):
     opt_types = [option.opt_type]
     if not required:
         opt_types.append('not_set')
     type_name = random.choice(opt_types)
-    res = parse_type(type_name)
+    res = parse_type(type_name, opt_args)
     res.option = option
     return res
 

@@ -178,6 +178,7 @@ class RunnableCommand(object):
         cmd.options = []
         cmd.pre_funcs = []
         cmd.post_funcs = []
+        opt_args = {}
         for name, opt in cmd_type.options.items():
             if name not in exc_opts:
                 required = None
@@ -186,7 +187,9 @@ class RunnableCommand(object):
                 if name in requires:
                     required = True
 
-                rnd_opt = opt.random(force_required=required)
+                rnd_opt = opt.random(
+                    opt_args,
+                    force_required=required)
                 cmd.pre_funcs.append(rnd_opt.pre)
                 cmd.post_funcs.append(rnd_opt.post)
                 cmd.options.append(rnd_opt)
@@ -200,7 +203,9 @@ class RunnableCommand(object):
         if combs:
             for opt_name in random.choice(combs):
                 opt = cmd_type.options[opt_name]
-                cmd.options.append(opt.random(force_required=True))
+                cmd.options.append(opt.random(
+                    opt_args,
+                    force_required=True))
 
         cmd.get_cmd_line()
         return cmd
