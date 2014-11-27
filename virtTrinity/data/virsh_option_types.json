@@ -23,16 +23,6 @@
             ["current", "config"]
         ]
     },
-    "detach-device": {
-        "exclusives": [
-            ["current", "live"],
-            ["current", "persistent"],
-            ["current", "config"]
-        ],
-        "option_types": {
-            "file": "existing_device_xml"
-        }
-    },
     "blkdeviotune": {
         "exclusives": [
             ["current", "live"],
@@ -96,14 +86,346 @@
             "Unable to parse FD number '${pass-fds}'"
         ]
     },
-    "desc": {
+    "cpu-stats": {
         "result_patterns": [
-            "${ctrl-chars}\\nVim: Warning: Output is not to a terminal"
+            "${number:[.0-9]+} seconds"
+        ]
+    },
+    "define": {
+        "option_types": {
+            "file": "vm_xml"
+        },
+        "result_patterns": [
+            "domain '${domain}' already exists with uuid ${domuuid}",
+            "Domain ${domain} defined from"
+        ]
+    },
+    "desc": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "/tmp/virsh${file}.xml"
+        ]
+    },
+    "detach-device": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ],
+        "option_types": {
+            "file": "existing_device_xml"
+        }
+    },
+    "detach-disk": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ]
+    },
+    "detach-interface": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "persistent"],
+            ["current", "config"]
+        ]
+    },
+    "domid": {
+        "result_patterns": [
+            "${number:[0-9]+}"
+        ]
+    },
+    "domiflist": {
+        "result_patterns": [
+            "${mac:[0-9a-z:]{17}}"
+        ]
+    },
+    "domiftune": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "domifinfo": {
+        "result_patterns": [
+            "Id:             ${id}",
+            "UUID:           ${uuid}",
+            "CPU time:       ${cpu-time}",
+            "Max memory:     ${number} KiB",
+            "Used memory:    ${number} KiB"
+        ]
+    },
+    "domjobinfo": {
+        "result_patterns": [
+            "Time elapsed:     ${number} ms",
+            "Data processed:   ${number} KiB",
+            "Data remaining:   ${number} B",
+            "Data total:       ${number} MiB",
+            "Memory processed: ${number} KiB",
+            "Memory remaining: ${number} B",
+            "Memory total:     ${number} MiB",
+            "Memory bandwidth: ${number} MiB/s",
+            "Constant pages:   ${number}",
+            "Normal pages:     ${number}",
+            "Normal data:      ${number} KiB",
+            "Total downtime:   ${number} ms",
+            "Setup time:       ${number} ms"
+        ]
+    },
+    "dommemstat": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "domtime": {
+        "exclusives": [
+            ["time", "now"],
+            ["time", "sync"],
+            ["now", "sync"]
+        ]
+    },
+    "domuuid": {
+        "result_patterns": [
+            "${uuid:[0-9a-f]+}"
+        ]
+    },
+    "dump": {
+        "depends": [
+            ["format", "memory-only"]
         ]
     },
     "edit": {
         "result_patterns": [
             "/tmp/virsh${file}.xml"
+        ]
+    },
+    "emulatorpin": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "Physical CPU ${cpu} doesn't exist"
+        ]
+    },
+    "freecell": {
+        "result_patterns": [
+            ": ${number} KiB"
+        ]
+    },
+    "freepages": {
+        "exclusives": [
+            ["all", "cellno"]
+        ],
+        "result_patterns": [
+            "value too large: ${number}",
+            "4KiB: ${number}",
+            "2048KiB: ${number}"
+        ]
+    },
+    "managedsave": {
+        "exclusives": [
+            ["running", "paused"]
+        ]
+    },
+    "memtune": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "hard_limit     : ${number}",
+            "soft_limit     : ${number}",
+            "swap_hard_limit: ${number}"
+        ]
+    },
+    "metadata": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"],
+            ["edit", "set"],
+            ["remove", "set"]
+        ]
+    },
+    "migrate-compcache": {
+        "result_patterns": [
+            "Compression cache: ${number} MiB"
+        ]
+    },
+    "migrate-getspeed": {
+        "result_patterns": [
+            "${number:[0-9]+}"
+        ]
+    },
+    "node-memory-tune": {
+        "result_patterns": [
+            "${number:[0-9]+}"
+        ]
+    },
+    "nodecpustats": {
+        "result_patterns": [
+            "user:        ${number:[ 0-9]+}",
+            "system:      ${number:[ 0-9]+}",
+            "idle:        ${number:[ 0-9]+}",
+            "iowait:      ${number:[ 0-9]+}",
+            "user:        ${percent:[ 0-9%]+}",
+            "system:      ${percent:[ 0-9%]+}",
+            "idle:        ${percent:[ 0-9%]+}",
+            "iowait:      ${percent:[ 0-9%]+}"
+        ]
+    },
+    "nodedev-list": {
+        "exclusives": [
+            ["tree", "cap"]
+        ]
+    },
+    "nodeinfo": {
+        "result_patterns": [
+            "CPU model:           ${model}",
+            "CPU(s):              ${number}",
+            "CPU frequency:       ${number} MHz",
+            "CPU socket(s):       ${number}",
+            "Core(s) per socket:  ${number}",
+            "Thread(s) per core:  ${number}",
+            "NUMA cell(s):        ${number}",
+            "Memory size:         ${number} KiB"
+        ]
+    },
+    "nodememstats": {
+        "result_patterns": [
+            ": ${number} KiB"
+        ]
+    },
+    "numatune": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "pool-list": {
+        "result_patterns": [
+            "Invalid pool type '${type}'"
+        ]
+    },
+    "qemu-agent-command": {
+        "exclusives": [
+            ["timeout", "async"],
+            ["timeout", "block"],
+            ["async", "block"]
+        ]
+    },
+    "qemu-monitor-command": {
+        "exclusives": [
+            ["hmp", "pretty"]
+        ]
+    },
+    "reboot": {
+        "option_types": {
+            "mode": "reboot_mode"
+        }
+    },
+    "save": {
+        "exclusives": [
+            ["running", "paused"]
+        ]
+    },
+    "save-image-edit": {
+        "exclusives": [
+            ["running", "paused"]
+        ]
+    },
+    "schedinfo": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "invalid scheduler option: ${option}"
+        ]
+    },
+    "setmaxmem": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "setmem": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ]
+    },
+    "setvcpus": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"],
+            ["guest", "config"]
+        ],
+        "depends": [
+            ["maximum", "config"]
+        ],
+        "result_patterns": [
+            "requested vcpus is greater than max allowable vcpus for the domain: ${count} > ${maxvcpus}"
+        ]
+    },
+    "shutdown": {
+        "result_patterns": [
+            "Unknown mode ${mode} value"
+        ]
+    },
+    "snapshot-create-as": {
+        "exclusives": [
+            ["print-xml", "no-metadata"]
+        ],
+        "depends": [
+            ["quiesce", "disk-only"]
+        ]
+    },
+    "snapshot-current": {
+        "exclusives": [
+            ["name", "snapshot-name"]
+        ]
+    },
+    "snapshot-delete": {
+        "exclusives": [
+            ["snapshotname", "current"]
+        ]
+    },
+    "snapshot-edit": {
+        "exclusives": [
+            ["rename", "clone"]
+        ]
+    },
+    "snapshot-info": {
+        "exclusives": [
+            ["snapshotname", "current"]
+        ]
+    },
+    "snapshot-list": {
+        "exclusives": [
+            ["from", "current"],
+            ["parent", "roots"],
+            ["roots", "from"],
+            ["tree", "name"],
+            ["roots", "tree"],
+            ["parent", "tree"],
+            ["leaves", "tree"],
+            ["disk-only", "tree"],
+            ["active", "tree"]
+        ]
+    },
+    "snapshot-parent": {
+        "exclusives": [
+            ["snapshotname", "current"]
+        ]
+    },
+    "snapshot-revert": {
+        "exclusives": [
+            ["snapshotname", "current"]
         ]
     },
     "start": {
@@ -115,16 +437,14 @@
         ],
         "weight": 100
     },
-    "define": {
-        "option_types": {
-            "file": "vm_xml"
-        },
-        "result_patterns": [
-            "domain '${domain}' already exists with uuid ${domuuid}",
-            "Domain ${domain} defined from"
-        ]
-    },
     "undefine": {
+        "exclusives": [
+            ["storage", "remove-all-storage"]
+        ],
+        "depends": [
+            ["wipe-storage", "storage"],
+            ["wipe-storage", "remove-all-storage"]
+        ],
         "optionals": [
             "storage"
         ],
@@ -132,9 +452,77 @@
             "Volume '${storage}' was not found in domain's definition."
         ]
     },
-    "reboot": {
-        "option_types": {
-            "mode": "reboot_mode"
-        }
+    "update-device": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"],
+            ["current", "persistent"]
+        ]
+    },
+    "vcpucount": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"],
+            ["live", "config"],
+            ["guest", "config"],
+            ["active", "maximum"]
+        ],
+        "result_patterns": [
+            "${number:[0-9]+}"
+        ]
+    },
+    "vcpupin": {
+        "exclusives": [
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "depends": [
+            ["cpu-list", "vcpu"]
+        ]
+    },
+    "vol-clone": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-delete": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-info": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-key": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-name": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-path": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-pool": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-upload": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
+    },
+    "vol-wipe": {
+        "result_patterns": [
+            "no storage vol with matching path '${vol}' ($vol-path)"
+        ]
     }
 }
