@@ -25,7 +25,7 @@ class Option(object):
         self.name = name
 
         if type_name == '<string>':
-            known_types = ['domain', 'pool', 'file']
+            known_types = ['domain', 'pool', 'file', 'vol']
             if name in known_types:
                 type_name = name
             else:
