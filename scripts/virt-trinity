@@ -57,6 +57,8 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
     try:
         while True:
             cmd = vsh.random_cmd(commands)
+            if 'skip' in cmd.opt_args:
+                continue
             result = cmd.run(timeout=timeout)
             cli.send_result(run_id, counter, result)
 

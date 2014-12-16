@@ -1,4 +1,21 @@
 {
+    "allocpages": {
+        "exclusives": [
+            ["all", "cellno"]
+        ],
+        "result_patterns": [
+            "/sys/kernel/mm/hugepages/hugepages-${pagesize:int}kB/nr_hugepages",
+            "start cell ${cellno:int} out of range (0-${maxcell:int})",
+            "/sys/devices/system/node/node${cellno:int}/hugepages/hugepages-${pagesize:int}kB/nr_hugepages",
+            "Unable to allocate ${expect:int} pages. Allocated only ${real:int}",
+            "value too large: ${number}"
+        ],
+        "option_types": {
+            "pagesize": "huge_page_size",
+            "pagecount": "non_negative",
+            "cellno": "cell_number"
+        }
+    },
     "attach-device": {
         "exclusives": [
             ["current", "live"],
@@ -6,6 +23,7 @@
             ["current", "config"]
         ],
         "option_types": {
+            "domain": "domain",
             "file": "device_xml"
         }
     },
@@ -14,7 +32,38 @@
             ["current", "live"],
             ["current", "persistent"],
             ["current", "config"]
-        ]
+        ],
+        "skips": ["print-xml"],
+        "weight": 1,
+        "result_patterns": [
+            "(device_definition):${lineno:int}:",
+            "${xmlline:  *<.*>}",
+            "${pointer:-+\\^}",
+            "expecting a pci:0000.00.00.00 address",
+            "expecting a scsi:00.00.00 address",
+            "expecting an ide:00.00.00 address",
+            "rawio or sgio can be used only with device='lun'",
+            "disk device='lun' is not supported for bus='${bus}'",
+            "unsupported driver name '${driver}' for disk '${source}'",
+            "No such file or directory",
+            "Cannot access storage file '${source}' (as uid:${uid:int}, gid:${gid:int})",
+            "Invalid PCI address ${domain:int}:${bus:int}:${slot:int}.${function:int}. Only PCI domain 0 is available"
+        ],
+        "option_types": {
+            "source": "file",
+            "target": "disk_name",
+            "sourcetype": "disk_source_type",
+            "targetbus": "disk_bus",
+            "driver": "disk_driver",
+            "subdriver": "disk_sub_driver",
+            "address": "disk_address",
+            "cache": "disk_cache",
+            "serial": "disk_serial",
+            "iothread": "disk_iothread",
+            "wwn": "wwn",
+            "type": "disk_type",
+            "mode": "disk_mode"
+        }
     },
     "attach-interface": {
         "exclusives": [
@@ -25,18 +74,55 @@
     },
     "blkdeviotune": {
         "exclusives": [
-            ["current", "live"],
-            ["current", "config"]
-        ]
-    },
-    "blkiotune": {
-        "exclusives": [
+            ["total-bytes-sec", "read-bytes-sec"],
+            ["total-bytes-sec", "write-bytes-sec"],
+            ["total-iops-sec", "read-iops-sec"],
+            ["total-iops-sec", "write-iops-sec"],
+            ["total-bytes-sec-max", "read-bytes-sec-max"],
+            ["total-bytes-sec-max", "write-bytes-sec-max"],
+            ["total-iops-sec-max", "read-iops-sec-max"],
+            ["total-iops-sec-max", "write-iops-sec-max"],
             ["current", "live"],
             ["current", "config"]
         ],
         "result_patterns": [
-            "invalid value '${string}' for parameter '${param}' of device '${string}'"
-        ]
+            ": {number:int}"
+        ],
+        "option_types": {
+            "device": "exist_disk",
+            "total-bytes-sec": "non_negative",
+            "read-bytes-sec": "non_negative",
+            "write-bytes-sec": "non_negative",
+            "total-iops-sec": "non_negative",
+            "read-iops-sec": "non_negative",
+            "write-iops-sec": "non_negative",
+            "total-bytes-sec-max": "non_negative",
+            "read-bytes-sec-max": "non_negative",
+            "write-bytes-sec-max": "non_negative",
+            "total-iops-sec-max": "non_negative",
+            "read-iops-sec-max": "non_negative",
+            "write-iops-sec-max": "non_negative",
+            "size-iops-sec": "non_negative"
+        }
+    },
+    "blkiotune": {
+        "exclusives": [
+            ["config", "live"],
+            ["current", "live"],
+            ["current", "config"]
+        ],
+        "result_patterns": [
+            "weight         : ${number}",
+            "unable to parse blkio device '${device}' '${value}'",
+            "invalid value '${value}' for parameter '${param}' of device '${device}'"
+        ],
+        "option_types": {
+            "device-weights": "disk_count_string",
+            "device-read-iops-sec": "disk_count_string",
+            "device-write-iops-sec": "disk_count_string",
+            "device-read-bytes-sec": "disk_count_string",
+            "device-write-bytes-sec": "disk_count_string"
+        }
     },
     "blockcommit": {
         "exclusives": [
@@ -45,12 +131,18 @@
         "depends": [
             ["async", "wait"],
             ["verbose", "wait"]
-        ]
-
+        ],
+        "result_patterns": [
+            "unsupported flags (0x${flagno:int}) in function qemuDomainBlockCommit"
+        ],
+        "option_types": {
+            "domain": "domain",
+            "path": "exist_disk"
+        }
     },
     "blockcopy": {
         "exclusives": [
-            ["pivot", "finish"]
+            ["dest", "xml"]
         ],
         "depends": [
             ["async", "wait"],
@@ -109,6 +201,11 @@
             "/tmp/virsh${file}.xml"
         ]
     },
+    "destroy": {
+        "option_types": {
+            "domain": "active_domain"
+        }
+    },
     "detach-device": {
         "exclusives": [
             ["current", "live"],
@@ -116,7 +213,7 @@
             ["current", "config"]
         ],
         "option_types": {
-            "file": "existing_device_xml"
+            "file": "exist_device_xml"
         }
     },
     "detach-disk": {
@@ -124,7 +221,10 @@
             ["current", "live"],
             ["current", "persistent"],
             ["current", "config"]
-        ]
+        ],
+        "option_types": {
+            "target": "exist_disk"
+        }
     },
     "detach-interface": {
         "exclusives": [
@@ -430,7 +530,7 @@
     },
     "snapshot-current": {
         "exclusives": [
-            ["name", "snapshot-name"]
+            ["name", "snapshotname"]
         ]
     },
     "snapshot-delete": {
@@ -473,12 +573,18 @@
     },
     "start": {
         "option_types": {
+            "domain": "inactive_domain",
             "pass-fds": "fd"
         },
+        "skips": ["pass-fds"],
         "result_patterns": [
-            "Unable to parse FD number '${pass-fds}'"
+            "Failed to start domain ${domain}",
+            "Path '${path}' is not accessible",
+            "Cannot access storage file '${source}' (as uid:${uid:int}, gid:${gid:int})",
+            "Invalid value '${value}' for '${cgpath}'",
+            "Unable to parse FD number '${fds}'"
         ],
-        "weight": 100
+        "weight": 1
     },
     "undefine": {
         "exclusives": [
@@ -492,6 +598,8 @@
             "storage"
         ],
         "result_patterns": [
+            "Domain ${domain} has been undefined",
+            "Storage volume '${disk}'(${path}) is not managed by libvirt",
             "Volume '${storage}' was not found in domain's definition."
         ]
     },
