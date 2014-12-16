@@ -4,6 +4,7 @@
 import os
 import sys
 import uuid
+import time
 import threading
 
 # simple magic for using scripts within a source tree
@@ -49,40 +50,64 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
         sys.exit(1)
 
     counter = 0
-    stat = {'total_time': 0, 'success': 0, 'timeout': 0}
+    n_success = 0
+    n_failure = 0
+    n_timeout = 0
+    n_skip = 0
+    stat = {'success': 0, 'timeout': 0}
 
     cli = client.Client()
     run_id = uuid.uuid4()
     cli.start_run(run_id)
+    run_start = time.time()
+    gen_time = 0.0
+    call_time = 0.0
+    send_time = 0.0
     try:
         while True:
+            gen_start = time.time()
             cmd = vsh.random_cmd(commands)
+            gen_time += time.time() - gen_start
             if 'skip' in cmd.opt_args:
+                n_skip += 1
                 continue
             result = cmd.run(timeout=timeout)
+            call_time += result.call_time
+            send_start = time.time()
             cli.send_result(run_id, counter, result)
+            send_time += time.time() - send_start
 
             counter += 1
             res = result.exit_status
-            stat['total_time'] += result.call_time
-            if res in stat:
-                stat[res] += 1
-            else:
-                stat[res] = 1
-    except KeyboardInterrupt:
+            if res == 'success':
+                n_success += 1
+            elif res == 'failure':
+                n_failure += 1
+            elif res == 'timeout':
+                n_timeout += 1
+    except Exception:
         cli.end_run(run_id)
         print
         print 'Statistics'
         print '----------'
         print
-        print 'Test count   : %s' % counter
-        print 'Test time    : %.2f' % stat['total_time']
-        print 'Ave call time: %.4f' % (
-            (stat['total_time'] - timeout * stat['timeout']) /
-            (counter - stat['timeout']))
-        print 'Success count: %s' % stat['success']
-        print 'Success rate : %s' % (stat['success'] / float(counter))
-        print 'Timeout count: %s' % stat['timeout']
+        print 'Test count     : %s' % counter
+        print '  Success      : %s' % n_success
+        print '  Timeout      : %s' % n_timeout
+        print '  Failure      : %s' % n_failure
+        print '  Skipped      : %s' % n_skip
+        print 'Test time      : %.2f' % (time.time() - run_start)
+        print '  Gen time     : %.2f' % gen_time
+        print '  Call time    : %.2f' % call_time
+        print '  Send time    : %.2f' % send_time
+        if counter - n_timeout:
+            print '  Ave gen time : %.4f' % (gen_time / (counter + n_skip))
+            print '  Ave call time: %.4f' % (
+                (call_time - timeout * n_timeout) /
+                (counter - n_timeout))
+            print '  Ave send time: %.4f' % (send_time / counter)
+        if counter:
+            print 'Success rate   : %s' % (n_success / float(counter))
 
 
 if __name__ == '__main__':
