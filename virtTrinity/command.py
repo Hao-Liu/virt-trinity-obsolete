@@ -70,7 +70,8 @@ class Command(object):
             for item, content in settings[name].items():
                 if item == 'option_types':
                     for opt_name, opt_type in content.items():
-                        cmd.options[opt_name].opt_type = opt_type
+                        if opt_name in cmd.options:
+                            cmd.options[opt_name].opt_type = opt_type
                 else:
                     setattr(cmd, item, content)
         return cmd
@@ -109,36 +110,12 @@ class Command(object):
 class VirshCmdResult(utils.CmdResult):
     @classmethod
     def from_result(cls, cmd, result):
-        def sub(cmd, text):
-            text = text.decode('utf-8')
-            if hasattr(cmd.command, 'result_patterns'):
-                for patt in cmd.command.result_patterns:
-                    re_patt = patt
-                    patt_vars = re.findall('\$\{(.*)\}', patt)
-                    for patt_var in patt_vars:
-                        re_name = patt_var
-                        re_str = '.*'
-
-                        if ':' in patt_var:
-                            re_name, re_str = patt_var.split(':', 1)
-
-                        re_patt = re.sub(
-                            re.escape('${%s}' % patt_var), re_str, re_patt)
-                        text = re.sub(
-                            re_patt, patt.replace(patt_var, re_name), text)
-
-            for opt in cmd.options:
-                line = opt.line
-                replacement = '${%s}' % opt.option.name
-                if line and line in text:
-                    text = text.replace(line, replacement)
-            return text
 
         result.__class__ = cls
         result.cmdname = cmd.command.name
 
-        result.sub_stdout = sub(cmd, result.stdout)
-        result.sub_stderr = sub(cmd, result.stderr)
+        result.sub_stdout = result._sub(cmd, result.stdout)
+        result.sub_stderr = result._sub(cmd, result.stderr)
 
         result.key = '\n'.join((
             result.exit_status,
@@ -146,6 +123,66 @@ class VirshCmdResult(utils.CmdResult):
             result.sub_stderr,
         ))
         return result
+
+    def _sub(self, cmd, text):
+        text = text.decode('utf-8')
+
+        found = False
+        if hasattr(cmd.command, 'result_patterns'):
+            for patt_str in cmd.command.result_patterns:
+                param_strs = re.findall('\$\{(.*?)\}', patt_str)
+                params = []
+                for param_str in param_strs:
+                    if ':' in param_str:
+                        param_name, param_type = param_str.split(':', 1)
+                    else:
+                        param_name = param_str
+                        param_type = 'all'
+                    param_tpl = param_name.upper() + "PLACEHOLDER"
+                    params.append((param_name, param_type,
+                                   param_str, param_tpl))
+
+                template = patt_str
+                for param_name, param_type, param_str, param_tpl in params:
+                    template = re.sub(
+                        re.escape('${%s}' % param_str),
+                        param_tpl,
+                        template)
+
+                regex = re.escape(template)
+                for param_name, param_type, param_str, param_tpl in params:
+                    if param_type == 'all':
+                        param_re = r'.*'
+                    elif param_type == 'int':
+                        param_re = r'[-0-9]*'
+                    else:
+                        param_re = param_type
+
+                    regex = re.sub(
+                        param_tpl,
+                        '(?P<%s>%s)' % (param_name, param_re),
+                        regex)
+
+                repl = template
+                for param_name, param_type, param_str, param_tpl in params:
+                    repl = re.sub(
+                        param_tpl,
+                        '${%s}' % param_name,
+                        repl)
+
+                match = re.search(regex, text)
+
+                if match:
+                    text = re.sub(regex, repl, text)
+                    found = True
+
+        if not found:
+            for opt in cmd.options:
+                line = opt.line
+                replacement = '${%s}' % opt.option.name
+                if line and line in text:
+                    text = text.replace(line, replacement)
+        return text
 
 
 class RunnableCommand(object):
@@ -162,12 +199,16 @@ class RunnableCommand(object):
 
         exc_opts = set()
         excs = []
-        combs = []
         optionals = []
         requires = []
+        skips = []
         if hasattr(cmd.command, 'exclusives'):
             excs = cmd.command.exclusives
-            exc_opts = set(itertools.chain.from_iterable(excs))
+            exc_opts = set(opt for opt in itertools.chain.from_iterable(excs)
+                           if opt in cmd.command.options)
+
+        if hasattr(cmd.command, 'depends'):
+            deps = cmd.command.depends
 
         if hasattr(cmd.command, 'optionals'):
             optionals = cmd.command.optionals
@@ -175,10 +216,13 @@ class RunnableCommand(object):
         if hasattr(cmd.command, 'requires'):
             requires = cmd.command.requires
 
+        if hasattr(cmd.command, 'skips'):
+            skips = cmd.command.skips
+
         cmd.options = []
         cmd.pre_funcs = []
         cmd.post_funcs = []
-        opt_args = {}
+        cmd.opt_args = {}
         for name, opt in cmd_type.options.items():
             if name not in exc_opts:
                 required = None
@@ -186,25 +230,30 @@ class RunnableCommand(object):
                     required = False
                 if name in requires:
                     required = True
+                if name not in skips:
+                    rnd_opt = opt.random(
+                        cmd.opt_args,
+                        force_required=required)
+                    cmd.pre_funcs.append(rnd_opt.pre)
+                    cmd.post_funcs.append(rnd_opt.post)
+                    cmd.options.append(rnd_opt)
 
-                rnd_opt = opt.random(
-                    opt_args,
-                    force_required=required)
-                cmd.pre_funcs.append(rnd_opt.pre)
-                cmd.post_funcs.append(rnd_opt.post)
-                cmd.options.append(rnd_opt)
-
-        for comb_len in xrange(0, len(exc_opts)):
+        combs = []
+        for comb_len in xrange(0, len(exc_opts) + 1):
             for comb in itertools.combinations(exc_opts, comb_len):
+                excl = False
                 for exc_a, exc_b in excs:
-                    if exc_a not in comb and exc_b not in comb:
-                        combs.append(comb)
+                    if exc_a in comb and exc_b in comb:
+                        excl = True
+                        break
+                if not excl:
+                    combs.append(comb)
 
         if combs:
             for opt_name in random.choice(combs):
                 opt = cmd_type.options[opt_name]
                 cmd.options.append(opt.random(
-                    opt_args,
+                    cmd.opt_args,
                     force_required=True))
 
         cmd.get_cmd_line()
