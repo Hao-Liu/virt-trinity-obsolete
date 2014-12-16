@@ -1,0 +1,66 @@
+#grid-container {
+    width: 40%;
+    display: inline-block;
+    float: left;
+    padding: 10;
+}
+
+#cmd-container {
+    width: 55%;
+    display: inline-block;
+    float: left;
+    padding: 10;
+}
+
+.label {
+    color: #fff;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+    font-size: 1.0em;
+    margin: auto;
+    width: auto;
+    line-height: 20px;
+    text-align: center;
+}
+
+.result {
+    list-style: none;
+    border-top: 1px solid #eee;
+    border-right: 1px solid #eee;
+    padding: 8px 10px;
+}
+
+.result:hover {
+    background-color: #f7fbfc;
+}
+
+.cmdlines {
+    display: none;
+    font-weight: bold;
+    font-size: 15px;
+    color: #333;
+}
+
+.cmdline {
+    padding: 5px;
+}
+
+.stdout {
+    color: #282;
+}
+
+.stderr {
+    color: #822;
+}
+
+.failure {
+    border-left: 5px solid #c00;
+}
+
+.success {
+    border-left: 5px solid #9f0;
+}
+
+.timeout {
+    border-left: 5px solid #fc0;
+}
+

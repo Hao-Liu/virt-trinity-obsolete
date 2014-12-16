@@ -30,7 +30,12 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             file_name = os.path.basename(self.path)
             file_path = os.path.join('data/css', file_name)
             send_data = load_file(file_path)
-        elif self.path in ['/', '/stats']:
+        elif self.path in ['/', '/grid']:
+            grid_content = load_file('data/html/grid.html')
+            html_dict = {"content": grid_content}
+            html_template = Template(load_file('data/html/main.html'))
+            send_data = html_template.safe_substitute(html_dict)
+        elif self.path == '/stats':
             stat_content = load_file('data/html/stats.html')
             html_dict = {"content": stat_content}
             html_template = Template(load_file('data/html/main.html'))
@@ -102,5 +107,5 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class Server(BaseHTTPServer.HTTPServer):
     def __init__(self):
         BaseHTTPServer.HTTPServer.__init__(
-            self, ("127.0.0.1", 8000), RequestHandler)
+            self, ("0.0.0.0", 8000), RequestHandler)
         database.Database().create()
