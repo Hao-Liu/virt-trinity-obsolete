@@ -49,7 +49,7 @@
             "Invalid PCI address ${domain:int}:${bus:int}:${slot:int}.${function:int}. Only PCI domain 0 is available"
         ],
         "option_types": {
-            "source": "file",
+            "source": "permanent_file",
             "target": "disk_name",
             "sourcetype": "disk_source_type",
             "targetbus": "disk_bus",
@@ -151,31 +151,59 @@
             "unsupported flags (0x${flagno:int}) in function qemuDomainBlockCommit"
         ],
         "option_types": {
-            "domain": "domain",
             "path": "exist_disk"
         }
     },
     "blockcopy": {
         "exclusives": [
-            ["dest", "xml"]
+            ["dest", "xml"],
+            ["format", "xml"],
+            ["blockdev", "xml"],
+            ["pivot", "finish"]
         ],
         "depends": [
             ["async", "wait"],
             ["verbose", "wait"]
-        ]
+        ],
+        "result_patterns": [
+            "unknown driver format value '${format}'",
+            "Failed to open file '${xml}'"
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "blockjob": {
         "exclusives": [
             ["abort", "info"],
+            ["async", "info"],
+            ["pivot", "info"],
+            ["abort", "raw"],
+            ["async", "raw"],
+            ["pivot", "raw"],
             ["info", "bandwidth"],
-            ["abort", "bandwidth"]
-        ]
+            ["raw", "bandwidth"],
+            ["abort", "bandwidth"],
+            ["async", "bandwidth"],
+            ["pivot", "bandwidth"]
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "blockpull": {
         "depends": [
             ["async", "wait"],
             ["verbose", "wait"]
-        ]
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
+    },
+    "blockresize": {
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "change-media": {
         "exclusives": [

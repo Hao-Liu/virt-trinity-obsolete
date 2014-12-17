@@ -168,6 +168,14 @@ class RandomFile(RandomString):
         if os.path.exists(self.path):
             os.remove(self.path)
 
+class RandomPermanentFile(RandomFile):
+    def __init__(self, opt_args):
+        self.path = '/tmp/virt-trinity-file'
+        self.line = self.path
+        self.content = ''
+
+    def post(self):
+        pass
 
 class RandomWord(RandomString):
     def __init__(self, opt_args):
@@ -269,17 +277,13 @@ class RandomVolXml(RandomFile):
 
 class RandomExistDisk(RandomString):
     def __init__(self, opt_args):
-        self.line = "vda"
+        self.line = "disk-not-found"
         if 'domain' in opt_args:
             text = utils.run(
                 'virsh -q domblklist %s' % opt_args['domain']).stdout
             disks = [l.split()[0] for l in text.strip().splitlines()]
             if disks:
                 self.line = random.choice(disks)
-            else:
-                opt_args['skip'] = True
-        else:
-            opt_args['skip'] = True
 
 
 class RandomDiskCountString(RandomString):
@@ -429,6 +433,14 @@ class RandomIfaceSource(RandomString):
                     self.line = random.choice(brs)
         else:
             self.line = random.choice(nets + brs)
+
+
+class RandomStorageFormat(RandomString):
+    def __init__(self, opt_args):
+        formats = ["none", "raw", "dir", "bochs", "cloop", "dmg", "iso",
+                   "vpc", "vdi", "fat", "vhd", "ploop", "cow", "qcow",
+                   "qcow2", "qed", "vmdk"]
+        self.line = random.choice(formats)
 
 
 class RandomExistDeviceXml(RandomDeviceXml):
