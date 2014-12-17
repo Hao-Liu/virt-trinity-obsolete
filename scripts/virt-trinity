@@ -85,7 +85,7 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
                 n_failure += 1
             elif res == 'timeout':
                 n_timeout += 1
-    except Exception:
+    except KeyboardInterrupt:
         cli.end_run(run_id)
         print
         print 'Statistics'
