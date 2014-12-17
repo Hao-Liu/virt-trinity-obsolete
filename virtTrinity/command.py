@@ -27,6 +27,9 @@ class Command(object):
             for opt_line in self.options:
                 opt = option.Option.from_help(
                     opt_line, self.name)
+                if opt.opt_type == 'string' and opt.required:
+                    if '[<%s>]' % opt.name in self.synopsis:
+                        opt.required = False
                 options[opt.name] = opt
                 last_name = opt.name
 
