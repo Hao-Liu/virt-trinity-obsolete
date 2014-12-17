@@ -169,6 +169,22 @@ class RandomFile(RandomString):
             os.remove(self.path)
 
 
+class RandomWord(RandomString):
+    def __init__(self, opt_args):
+        # Should be looser
+        chars = string.ascii_letters + string.digits
+        length = random.randint(5, 10)
+        self.line = ''.join(random.choice(chars) for _ in xrange(length))
+
+
+class RandomXmlString(RandomString):
+    def __init__(self, opt_args):
+        # Should be looser
+        chars = string.ascii_letters + string.digits + '_-+.'
+        length = random.randint(5, 10)
+        self.line = ''.join(random.choice(chars) for _ in xrange(length))
+
+
 class RandomVmXml(RandomFile):
     def __init__(self, opt_args):
         self.line = 'virt-trinity-vm.xml'
@@ -357,6 +373,62 @@ class RandomWwn(RandomNumber):
     def __init__(self, opt_args):
         self.line = ''.join([str(random.choice(string.hexdigits))
                              for i in xrange(16)])
+
+
+class RandomIfaceType(RandomString):
+    def __init__(self, opt_args):
+        self.line = random.choice(['network', 'bridge'])
+        opt_args['iface-type'] = self.line
+
+
+class RandomIfaceRate(RandomString):
+    def __init__(self, opt_args):
+        average = str(random.randint(-2, 100))
+        peak = random.choice([str(random.randint(-2, 100)), ''])
+        burst = random.choice([str(random.randint(-2, 100)), ''])
+        if burst == '':
+            if peak:
+                self.line = ','.join((average, peak))
+            else:
+                self.line = average
+        else:
+            self.line = ','.join((average, peak, burst))
+
+
+class RandomMac(RandomString):
+    def __init__(self, opt_args):
+        mac = ["%02x" % random.randint(0x00, 0xff)
+               for i in xrange(6)]
+        self.line = ':'.join(mac)
+
+
+class RandomUnicastMac(RandomString):
+    def __init__(self, opt_args):
+        mac = ["%02x" % random.randint(0x00, 0xff)
+               for i in xrange(6)]
+        mac[0] = "%02x" % (random.randint(0x00, 0xff) / 2 * 2)
+        self.line = ':'.join(mac)
+
+
+class RandomIfaceSource(RandomString):
+    def __init__(self, opt_args):
+        self.line = 'net-not-found'
+        text = utils.run('virsh -q net-list').stdout
+        nets = [l.split()[0] for l in text.strip().splitlines()]
+        text = utils.run('brctl show').stdout
+        brs = [l.split()[0]
+               for l in text.strip().splitlines()[1:]
+               if l[0] not in string.whitespace]
+        if 'iface-type' in opt_args:
+            iface_type = opt_args['iface-type']
+            if iface_type == 'network':
+                if nets:
+                    self.line = random.choice(nets)
+            elif iface_type == 'bridge':
+                if brs:
+                    self.line = random.choice(brs)
+        else:
+            self.line = random.choice(nets + brs)
 
 
 class RandomExistDeviceXml(RandomDeviceXml):

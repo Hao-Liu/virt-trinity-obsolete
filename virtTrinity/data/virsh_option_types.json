@@ -33,8 +33,7 @@
             ["current", "persistent"],
             ["current", "config"]
         ],
-        "skips": ["print-xml"],
-        "weight": 1,
+        "weight": 10,
         "result_patterns": [
             "(device_definition):${lineno:int}:",
             "${xmlline:  *<.*>}",
@@ -70,7 +69,23 @@
             ["current", "live"],
             ["current", "persistent"],
             ["current", "config"]
-        ]
+        ],
+        "result_patterns": [
+            "(device_definition):${lineno:int}:",
+            "${xmlline:  *<.*>}",
+            "${pointer:-+\\^}",
+            "expected unicast mac address, found multicast '${mac}'"
+        ],
+        "option_types": {
+            "type": "iface_type",
+            "inbound": "iface_rate",
+            "outbound": "iface_rate",
+            "source": "iface_source",
+            "script": "xml_string",
+            "target": "xml_string",
+            "model": "word",
+            "mac": "unicast_mac"
+        }
     },
     "blkdeviotune": {
         "exclusives": [
@@ -576,7 +591,6 @@
             "domain": "inactive_domain",
             "pass-fds": "fd"
         },
-        "skips": ["pass-fds"],
         "result_patterns": [
             "Failed to start domain ${domain}",
             "Path '${path}' is not accessible",
@@ -584,7 +598,7 @@
             "Invalid value '${value}' for '${cgpath}'",
             "Unable to parse FD number '${fds}'"
         ],
-        "weight": 1
+        "weight": 5
     },
     "undefine": {
         "exclusives": [
