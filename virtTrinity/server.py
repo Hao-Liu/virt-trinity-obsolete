@@ -61,10 +61,14 @@ class RequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             mimetype = 'application/json'
             send_data = json.dumps(db.get_results(log_idx, log_count))
-        elif self.path.startswith('/json/cmd'):
+        elif self.path.startswith('/json/keys'):
             _, cmd_name = self.path.split("-", 1)
             mimetype = 'application/json'
-            send_data = json.dumps(db.get_command(cmd_name))
+            send_data = json.dumps(db.get_command_keys(cmd_name))
+        elif self.path.startswith('/json/lines'):
+            _, cmd_name = self.path.split("-", 1)
+            mimetype = 'application/json'
+            send_data = json.dumps(db.get_command_lines(cmd_name))
         elif self.path == '/json/stats':
             mimetype = 'application/json'
             send_data = json.dumps(db.get_stat())

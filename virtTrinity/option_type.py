@@ -168,6 +168,7 @@ class RandomFile(RandomString):
         if os.path.exists(self.path):
             os.remove(self.path)
 
+
 class RandomPermanentFile(RandomFile):
     def __init__(self, opt_args):
         self.path = '/tmp/virt-trinity-file'

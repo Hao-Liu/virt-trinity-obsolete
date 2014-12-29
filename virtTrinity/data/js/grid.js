@@ -1,53 +1,46 @@
 function load_cmd(cmd_name) {
-    $.getJSON("/json/cmd-" + cmd_name, function(json_results) {
-        var keys = {};
-        json_results.forEach(function(result) {
-            if (!(result.key in keys))
-                keys[result.key] = [];
-            keys[result.key].push(result);
-        });
-
+    $.getJSON("/json/keys-" + cmd_name, function(json_results) {
         $("#cmd-container").empty();
-
-        $.map(keys, function(results, key) {
+        json_results.forEach(function(result) {
             var li = $("<li/>", {
-                "class": "result " + results[0].exit_status,
+                "class": "result " + result.exit_status,
             });
 
             var output_div = $("<div/>", {
                 "class": "output",
-            })
+                "text": result.count
+            });
             $("<pre/>", {
                 "class": "stdout",
-                text: results[0].sub_stdout
+                text: result.sub_stdout
             }).appendTo(output_div);
             $("<pre/>", {
                 "class": "stderr",
-                text: results[0].sub_stderr
+                text: result.sub_stderr
             }).appendTo(output_div);
 
             var cmdline_div = $("<div/>", {
                 "class": "cmdlines"
             });
-
-            results.forEach(function(result) {
-                $("<div/>", {
-                    "class": "cmdline",
-                    text: result.cmdline
-                }).appendTo(cmdline_div);
-            });
-
             cmdline_div.appendTo(output_div);
             output_div.appendTo(li);
+            li.click(function() {
+                $.getJSON("/json/lines-" + result.key, function(cmdlines) {
+                    li.find(".cmdlines").empty();
+                    cmdlines.forEach(function(cmdline) {
+                        var cmd_div = $("<div/>", {
+                            "class": "cmdline",
+                            text: cmdline[0]
+                        });
+                        cmd_div.appendTo(li.find(".cmdlines"));
+                    });
+                    li.find(".cmdlines").toggle("fast");
+                });
+            });
 
             li.appendTo("#cmd-container");
         });
-        $(".result").unbind("click");
-        $(".result").click(function() {
-            $(this).find(".cmdlines").toggle("fast");
-        });
     });
-    console.log(cmd_name);
 }
 
 $(function() {

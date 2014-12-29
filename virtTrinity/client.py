@@ -1,4 +1,5 @@
 import json
+import uuid
 import requests
 import datetime
 
@@ -31,6 +32,13 @@ class Client(object):
         )
 
     def send_result(self, run_id, cmd_id, result):
+        key_str = '\n'.join((
+            result.cmdname,
+            result.exit_status,
+            result.sub_stdout,
+            result.sub_stderr,
+        ))
+        key = str(uuid.uuid5(uuid.NAMESPACE_DNS, key_str.encode('utf-8')))
         requests.post(
             "http://127.0.0.1:8000/result",
             data=json.dumps(
@@ -45,7 +53,7 @@ class Client(object):
                     "stderr": result.stderr,
                     "sub_stdout": result.sub_stdout,
                     "sub_stderr": result.sub_stderr,
-                    "key": result.key,
+                    "key": key,
                 }
             )
         )

@@ -74,6 +74,35 @@ class Database(object):
             })
         return ret
 
+    def get_command_keys(self, cmd_name):
+        cur = self.conn.cursor()
+        cur.execute(
+            "select distinct key, status, sub_stdout, sub_stderr, count(key) "
+            "from results where cmdname=? group by key order by count(key) "
+            "desc",
+            (cmd_name,)
+        )
+        results = cur.fetchall()
+        ret = []
+        for (key, status, sub_stdout, sub_stderr, count) in results:
+            ret.append({
+                "key": key,
+                "exit_status": status,
+                "sub_stdout": sub_stdout,
+                "sub_stderr": sub_stderr,
+                "count": count,
+            })
+        return ret
+
+    def get_command_lines(self, key):
+        cur = self.conn.cursor()
+        cur.execute(
+            "select cmdline from results where key=?",
+            (key,)
+        )
+        results = cur.fetchall()
+        return results
+
     def get_command(self, name):
         cur = self.conn.cursor()
         cur.execute(

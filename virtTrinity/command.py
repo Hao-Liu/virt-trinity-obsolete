@@ -120,11 +120,6 @@ class VirshCmdResult(utils.CmdResult):
         result.sub_stdout = result._sub(cmd, result.stdout)
         result.sub_stderr = result._sub(cmd, result.stderr)
 
-        result.key = '\n'.join((
-            result.exit_status,
-            result.sub_stdout,
-            result.sub_stderr,
-        ))
         return result
 
     def _sub(self, cmd, text):
