@@ -54,7 +54,6 @@ def fuzzer(commands=[], excludes=[], timeout=5.0):
     n_failure = 0
     n_timeout = 0
     n_skip = 0
-    stat = {'success': 0, 'timeout': 0}
 
     cli = client.Client()
     run_id = uuid.uuid4()
