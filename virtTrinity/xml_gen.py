@@ -1,27 +1,202 @@
 import os
 import re
+import json
 import xml.etree.ElementTree as etree
 import random
 import logging
+import utils_random
+import utils_xml_gen
+from  xml.sax import saxutils
+
+
+def XMLError(Exception):
+    pass
+
 
 SCHEMAS_PATH = '/usr/share/libvirt/schemas'
 
+def load_rng(file_name, is_root=True):
+    xml_str = open(file_name).read()
+    xml_str = re.sub(' xmlns="[^"]+"', '', xml_str, count=1)
+    nodetree = etree.fromstring(xml_str)
+    for node in nodetree.findall('./include'):
+        rng_name = os.path.join(SCHEMAS_PATH, node.attrib['href'])
+        nodetree.remove(node)
+        for element in load_rng(rng_name, is_root=False):
+            nodetree.insert(0, element)
+    return nodetree if is_root else nodetree.getchildren()
+
+
+def gen_node(nodename, xml_type='domain'):
+    nodetree = load_rng(os.path.join(SCHEMAS_PATH, xml_type + '.rng'))
+    for element in load_rng('overides.xml', is_root=False):
+        name = element.get('name')
+        node = nodetree.find('./define[@name="%s"]' % name)
+        if node is not None:
+            nodetree.remove(node)
+        nodetree.insert(0, element)
+
+    node = nodetree.find("./define[@name='%s']" % nodename)
+    return parse_node(nodetree, node)
+
+
+def parse_node(nodetree, node, parent=None):
+    name = node.get('name')
+    logging.debug('parsing %s' % node.tag)
+
+    #TODO: Add depth checking
+    #TODO: Add node string
+    subnodes = list(node)
+
+    if node.tag in ["start", "define"]:
+        if len(subnodes) == 1:
+            return parse_node(nodetree, subnodes[0], parent)
+        elif len(subnodes) > 1:
+            if parent is None:
+                raise XMLError("Can't start a multi entry <define>")
+            result = None
+            for subnode in subnodes:
+                sgl_res = parse_node(nodetree, subnode, parent)
+                if sgl_res is not None:
+                    if result is not None:
+                        logging.error("Duplicated result in <define>")
+                    result = sgl_res
+            return result
+    elif node.tag == "ref":
+        def_nodes = nodetree.findall('./define[@name="%s"]' % name)
+        choices = []
+        for def_node in def_nodes:
+            if not len(node.findall('./notAllowed')):
+                choices.append(def_node)
+        if choices:
+            return parse_node(nodetree, random.choice(choices), parent)
+    elif node.tag == "element":
+        element = etree.Element(name)
+        if parent is not None:
+            parent.append(element)
+
+        for subnode in subnodes:
+            sgl_res = parse_node(nodetree, subnode, element)
+            if type(sgl_res) is str:
+                element.text = sgl_res
+        return element
+    elif node.tag == "attribute":
+        if subnodes is not None:
+            if subnodes:
+                value = parse_node(nodetree, subnodes[0], parent)
+            else:
+                value = utils_random.text()
+        else:
+            value = 'anystring'
+        parent.set(name, value)
+    elif node.tag == "empty":
+        pass
+    elif node.tag == "optional":
+        is_optional = random.random() < 1 # TODO
+        if is_optional:
+            for subnode in subnodes:
+                parse_node(nodetree, subnode, parent)
+    elif node.tag == "interleave":
+        if False: # TODO
+            random.shuffle(subnodes)
+        for subnode in subnodes:
+            parse_node(nodetree, subnode, parent)
+    elif node.tag == "data":
+        return get_data(node)
+    elif node.tag == "choice":
+        choice = random.choice(node.getchildren())
+        return parse_node(nodetree, choice, parent)
+    elif node.tag == "group":
+        for subnode in subnodes:
+            parse_node(nodetree, subnode, parent)
+    elif node.tag in ["zeroOrMore", "oneOrMore"]:
+        if len(subnodes) > 1:
+            logging.error("More than one subnodes when xOrMore")
+
+        subnode = subnodes[0]
+        min_cnt = 1 if node.tag == "oneOrMore" else 0
+        cnt = int(random.expovariate(0.5)) + min_cnt
+        for i in xrange(cnt):
+            parse_node(nodetree, subnode, parent)
+    elif node.tag == "value":
+        return node.text
+    elif node.tag in ["text", 'anyName']:
+        return utils_random.text()
+    else:
+        logging.error("Unhandled %s" % node.tag)
+        exit(1)
+
+def get_data(node, xml=None):
+    data_type = node.get('type')
+    if data_type in ['short', 'integer', 'int', 'long', 'unsignedShort',
+                     'unsignedInt', 'unsignedLong', 'positiveInteger']:
+        data_max = 100
+        data_min = -100
+        if data_type.startswith('unsigned'):
+            data_min = 0
+        elif data_type == 'positiveInteger':
+            data_min = 1
+
+        xml_min = node.findall("./param[@name='minInclusive']")
+        xml_max = node.findall("./param[@name='maxInclusive']")
+        if xml_min:
+            data_min = int(xml_min[0].text)
+        if xml_max:
+            data_max = int(xml_max[0].text)
+        return str(random.randint(data_min, data_max))
+    elif data_type == 'double':
+        return str(random.expovariate(0.1))
+    elif data_type == 'dateTime':
+        return "2014-12-25T00:00:01"
+    elif data_type == 'NCName':
+        return "NCName"
+    elif data_type == 'string':
+        pattern = node.findall("./param[@name='pattern']")
+        pattern = pattern[0].text if pattern else None
+
+        if data_type == 'string' and pattern is None:
+            # TODO: Check what happening
+            return "NoneString"
+
+        return saxutils.escape(utils_random.regex(pattern))
+    elif data_type == 'function':
+        fun_name = node.get("function")
+        param = node.get("param")
+        return getattr(utils_xml_gen, fun_name)(node, param, xml=xml)
+    else:
+        logging.error("Unhandled data type %s" % data_type)
+
 
 class RngUtils:
+    SCHEMAS_PATH = '/usr/share/libvirt/schemas'
     def __init__(self, name='domain'):
-        self.root = self.load_rng(os.path.join(SCHEMAS_PATH, name + '.rng'))
-        self.start = self.root.findall('./start')[0]
         self.xml = None
+        self.xml_stack = []
         self.temp_value = None
         self.interleave = False
         self.optional = 1
-        self.xOrMore = 1
-        self.deepth = 0
-        self.MAX_DEEPTH = 10
-        FORMAT = "%(asctime)-15s %(message)s"
-        logging.basicConfig(format=FORMAT, level="INFO")
-        self.log = logging.getLogger('RngUtils')
-        self.parse_node(self.start, self.xml)
+        self.MAX_DEEPTH = 100
+        self.root = self.load_rng(os.path.join(self.SCHEMAS_PATH, name + '.rng'))
+        self.params = {}
+        with open('overides.json', 'r') as fp:
+            self.overides = json.load(fp)
+
+        for element in self.load_rng('overides.xml', is_root=False):
+            name = element.get('name')
+            node = self.root.find('./define[@name="%s"]' % name)
+            if node is not None:
+                self.root.remove(node)
+            self.root.insert(0, element)
+
+        self.start = self.root.find('./start')
+        self.parse_node(self.start)
+
+        try:
+            commandlines = self.xml.findall('./commandline')
+            for cmdline in commandlines:
+                self.xml.remove(cmdline)
+        except IndexError:
+            pass
         self._indent(self.xml)
 
     def _indent(self, elem, level=0):
@@ -43,198 +218,167 @@ class RngUtils:
         return etree.tostring(self.xml)
 
     def load_rng(self, file_name, is_root=True):
-        rng_dir = './'
-        path = os.path.join(rng_dir, file_name)
-        xml_str = open(path).read()
+        xml_str = open(file_name).read()
         xml_str = re.sub(' xmlns="[^"]+"', '', xml_str, count=1)
         root = etree.fromstring(xml_str)
         for node in root.findall('./include'):
-            rng_name = os.path.join(SCHEMAS_PATH, node.attrib['href'])
+            rng_name = os.path.join(self.SCHEMAS_PATH, node.attrib['href'])
             root.remove(node)
-            elements = self.load_rng(rng_name, is_root=False)
-            for element in elements:
+            for element in self.load_rng(rng_name, is_root=False):
                 root.insert(0, element)
-        if is_root:
-            return root
-        else:
-            return root.getchildren()
+        return root if is_root else root.getchildren()
 
     def get_ref(self, name):
-        return self.root.findall("./*[@name='" + name + "']")[0]
+        res = self.root.findall("./define[@name='%s']" % name)
+        choices = []
+        for node in res:
+            if not len(node.findall("./notAllowed")):
+                choices.append(node)
+        if choices:
+            return random.choice(choices)
 
-    def get_data(self, node):
-        if node is None:
-            return "Any string"
-        type = node.get('type')
-        self.log.debug("Get data: " + type)
-        return "0"
+    def parse_node(self, node):
+        def get_node_str():
+            l = [xml.tag for xml in self.xml_stack]
+            name = node.get("name")
+            if name is not None:
+                l.append(name)
+            l.insert(0, "%s " % node.tag)
+            return '/'.join(l)
 
-    def random_str(self):
-        return "random string"
-
-    def parse_node(self, node, xml_node):
         container_tags = ["group", "interleave", "choice", "optional",
                           "zeroOrMore", "oneOrMore", "list", "mixed", "except"]
-        selecter_tags = ["choice", "zeroOrMore", "oneOrMore"]
         value_tags = ["value", "data", "text"]
         name_tags = ["name", "anyName", "nsName"]
-        if self.deepth > self.MAX_DEEPTH:
+
+        if len(self.xml_stack) > self.MAX_DEEPTH:
             return
+
+        self.node_str = get_node_str()
+        #if re.match('.*idmap.*', self.node_str):
+        #    print self.node_str
+        #logging.error(node_str)
+        if self.node_str in self.overides:
+            fun_name = self.overides[self.node_str]
+            if not getattr(utils_xml_gen, fun_name)(self, node):
+                return
+
         if node.tag == "start":
-            self.log.debug("--- START ---")
             combine = node.get('combine')
             if combine is None:
                 for child in list(node):
-                    self.parse_node(child, xml_node)
-            else:
-                self.log.error("Start attribute combine is not None")
+                    self.parse_node(child)
         elif node.tag == "ref":
             ref_name = node.get('name')
-            self.log.debug("ref: " + ref_name)
             new_node = self.get_ref(ref_name)
-            self.parse_node(new_node, xml_node)
-        elif node.tag == "define":
-            name = node.get('name')
-            combine = node.get('combine')
-            self.log.debug("Read define: " + name)
-            if combine is None:
-                for child in list(node):
-                    self.parse_node(child, xml_node)
-            else:
-                self.log.error("Attribute combine is not None")
+            if new_node is not None:
+                for child in list(new_node):
+                    self.parse_node(child)
         elif node.tag == "element":
             name = node.get('name')
             children = None
-            if name is None:
-                self.temp_value = True
-                self.parse_node(node[0], xml_node)
-                name = self.temp_value
-                self.temp_value = None
-                children = list(node)[1:]
             if self.xml is None:
-                self.log.debug("Create root element: " + name)
-                new_xml_node = etree.Element(name)
-                self.xml = new_xml_node
+                self.cur_xml = self.xml = etree.Element(name)
             else:
-                self.log.debug("Create subelement: " + name)
-                new_xml_node = etree.SubElement(xml_node, name)
-            self.deepth += 1
+                self.cur_xml = etree.SubElement(self.cur_xml, name)
+            self.xml_stack.append(self.cur_xml)
             if children is None:
                 children = list(node)
             for child in children:
-                self.parse_node(child, new_xml_node)
-            self.deepth -= 1
+                self.parse_node(child)
+            if len(self.xml_stack) > 1:
+                self.xml_stack.pop()
+                self.cur_xml = self.xml_stack[-1]
 
         elif node.tag == "attribute":
             name = node.get('name')
             content_index = 0
             if name is None:
-                self.log.debug("None attribute name")
-                self.temp_value = True
-                self.parse_node(node[0], xml_node)
-                name = self.temp_value
-                self.temp_value = None
+                if node.find('./anyName'):
+                    name = "anyName"
+                else:
+                    logging.error("Unhandle None attribute: %s" % node)
                 content_index = 1
-            self.log.debug("Set attribute: " + name)
             if len(list(node)) == (content_index + 1):
                 self.temp_value = True
-                self.parse_node(node[content_index], xml_node)
+                self.parse_node(node[content_index])
                 value = self.temp_value
                 self.temp_value = None
-                self.log.debug("Get attribute value: " + value)
-                xml_node.set(name, value)
+                self.cur_xml.set(name, value)
             else:
-                self.log.debug("Attribute Empty shell: " + name)
-                xml_node.set(name, self.get_data(None))
+                self.cur_xml.set(name, utils_random.text())
         elif node.tag == "empty":
             pass
-
         elif node.tag in container_tags:
             if node.tag == "choice":
-                self.log.debug("Start random choice")
                 choice = random.choice(node.getchildren())
-                self.parse_node(choice, xml_node)
+                self.parse_node(choice)
             elif node.tag == "optional":
                 optional = random.random() < self.optional
-                self.log.debug("Enable optional: " + str(optional))
                 if optional:
-                    self.parse_node(node[0], xml_node)
+                    for child in list(node):
+                        self.parse_node(child)
             elif node.tag == "interleave":
-                self.log.debug("Interlever: shuffle children")
                 children = list(node)[:]
                 if self.interleave:
                     random.shuffle(children)
                 for child in children:
-                    self.parse_node(child, xml_node)
+                    self.parse_node(child)
             elif node.tag == "group":
-                self.log.debug("Group elements")
                 for child in list(node):
-                    self.parse_node(child, xml_node)
-            elif node.tag == "zeroOrMore" or node.tag == "oneOrMore":
-                self.log.debug("1|0 or more: take samples.")
-                children = list(node)[:]
-                start = 0
-                left = -1
+                    self.parse_node(child)
+            elif node.tag in ["zeroOrMore", "oneOrMore"]:
+                child = list(node)[0]
                 if node.tag == "oneOrMore":
-                    start = 1
-                if self.xOrMore == -1:
-                    left = random.randint(start, len(children))
-                elif self.xOrMore == 0:
-                    left = start
+                    min_cnt = 1
                 else:
-                    left = int(self.xOrMore * len(children))
-                self.log.debug("    select {} element(s)".format(left))
-                children = random.sample(children, left)
-                for child in children:
-                    self.parse_node(child, xml_node)
+                    min_cnt = 0
+                cnt = int(random.expovariate(0.5)) + min_cnt
+                for i in xrange(cnt):
+                    self.parse_node(child)
             else:
-                self.log.error("Unhandled tag: " + node.tag)
+                logging.error("Unhandled tag: " + node.tag)
         elif node.tag in value_tags:
             if node.tag == "value":
-                self.log.debug("Get value: " + node.text)
-                type = node.get('type')
                 if self.temp_value:
                     self.temp_value = node.text
                 else:
-                    if xml_node.text is None:
-                        xml_node.text = node.text
+                    if self.cur_xml.text is None:
+                        self.cur_xml.text = node.text
                     else:
-                        self.log.error('xml_node is not None')
-                        xml_node.text += node.text
+                        self.cur_xml.text += node.text
             elif node.tag == "data":
-                self.log.debug("Get data: ")
-                data = self.get_data(node)
+                data = get_data(node, xml=self)
+                if data == None:
+                    data = "random data"
                 if self.temp_value:
-                    self.temp_value = "random data"
+                    self.temp_value = data
                 else:
-                    if xml_node.text is None:
-                        xml_node.text = "randome data"
+                    if self.cur_xml.text is None:
+                        self.cur_xml.text = data
                     else:
-                        xml_node.text += "random data"
+                        self.cur_xml.text += data
             elif node.tag == "text":
-                self.log.debug("Get text: " + "random text")
                 if self.temp_value:
-                    self.temp_value = "random text"
+                    self.temp_value = utils_random.text()
                 else:
-                    if xml_node.text is None:
-                        xml_node.text = "random text"
+                    if self.cur_xml.text is None:
+                        self.cur_xml.text = "randomtext"
                     else:
-                        self.log.error('xml_node is not None')
-                        xml_node.text += "random text"
+                        self.cur_xml.text += "randomtext"
             else:
-                self.log.error("Unhandle tag: " + node.tag)
+                logging.error("Unhandle tag: " + node.tag)
         elif node.tag in name_tags:
             if node.tag == "anyName":
-                self.log.debug("User anyName")
                 if self.temp_value:
-                    self.temp_value = "random text"
+                    self.temp_value = utils_random.text()
                 else:
-                    if xml_node.text is None:
-                        xml_node.text = "random AnyName"
+                    if self.cur_xml.text is None:
+                        self.cur_xml.text = "random AnyName"
                     else:
-                        self.log.error('xml_node is not None')
-                        xml_node.text += "random AnyName"
+                        logging.error('self.cur_xml is not None')
+                        self.cur_xml.text += "random AnyName"
             else:
-                self.log.error("Unhandle tag: " + node.tag)
+                logging.error("Unhandle tag: " + node.tag)
         else:
-            self.log.error("Unhandled tag: " + node.tag)
+            logging.error("Unhandled tag: " + node.tag)

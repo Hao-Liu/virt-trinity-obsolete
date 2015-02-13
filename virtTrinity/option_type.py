@@ -3,6 +3,7 @@ import os
 import errno
 import random
 import string
+import utils_random
 from xml.etree import ElementTree
 
 
@@ -209,12 +210,7 @@ class RandomVmXml(RandomFile):
         avail_names = list(set(all_names) - set(vm_names))
         if avail_names:
             vm_name = random.choice(avail_names)
-            self.content = """
-                <domain type='kvm'>
-                  <name>%s</name>
-                  <memory>100000</memory>
-                  <os><type>hvm</type></os>
-                </domain>""" % vm_name
+            self.content = utils_random.xml('domain', name=vm_name)
         else:
             opt_args['skip'] = True
 
@@ -223,11 +219,7 @@ class RandomDeviceXml(RandomFile):
     def __init__(self, opt_args):
         self.line = 'virt-trinity-device.xml'
         self.path = self.line
-        self.content = """
-        <interface type='bridge'>
-            <source bridge='virbr0'/>
-        </interface>
-        """
+        self.content = utils_random.device_xml()
 
 
 class RandomPoolXml(RandomFile):
@@ -235,15 +227,9 @@ class RandomPoolXml(RandomFile):
         self.line = 'virt-trinity-pool.xml'
         self.path = self.line
         self.number = random.randint(1, 9)
-        self.content = """
-        <pool type='dir'>
-            <name>virt-trinity-pool-%s</name>
-          <target>
-              <path>/var/lib/virt-trinity/pools/%s</path>
-          </target>
-        </pool>
-        """ % (self.number, self.number)
-        opt_args['pool'] = 'virt-trinit-pool-%s' % self.number
+        name = 'virt-trinity-pool-%s' % self.number
+        self.content = utils_random.xml('storagepool', name=name)
+        opt_args['pool'] = name
 
     def pre(self):
         path = "/var/lib/virt-trinity/pools/%s" % self.number
@@ -265,15 +251,8 @@ class RandomVolXml(RandomFile):
         self.line = 'virt-trinity-vol.xml'
         self.path = self.line
         self.number = random.randint(1, 9)
-        self.content = """
-        <volume type='file'>
-          <name>virt-trinity-vol-%s</name>
-          <capacity unit='bytes'>1000</capacity>
-          <target>
-            <path>virt-trinity-vol-%s</path>
-          </target>
-        </volume>
-        """ % (self.number, self.number)
+        name = 'virt-trinity-vol-%s' % self.number
+        self.content = utils_random.xml('storagevol', name=name)
 
 
 class RandomExistDisk(RandomString):
