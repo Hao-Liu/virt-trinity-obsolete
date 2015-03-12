@@ -232,6 +232,10 @@
         },
         "result_patterns": [
             "domain '${domain}' already exists with uuid ${domuuid}",
+            "PCI bus is not compatible with the device at ${dev-addr}",
+            "Unknown source mode '${mode}'",
+            "Cannot parse USB version ${version}",
+            "missing volume name or file name in gluster source path '${path}'",
             "Domain ${domain} defined from"
         ]
     },
@@ -624,7 +628,9 @@
             "Path '${path}' is not accessible",
             "Cannot access storage file '${source}' (as uid:${uid:int}, gid:${gid:int})",
             "Invalid value '${value}' for '${cgpath}'",
-            "Unable to parse FD number '${fds}'"
+            "Unable to parse FD number '${fds}'",
+            "Cannot duplicate FD ${fd}:",
+            "Unable to find security driver for label ${label}"
         ],
         "weight": 5
     },
