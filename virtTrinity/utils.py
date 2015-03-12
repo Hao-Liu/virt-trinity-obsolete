@@ -20,6 +20,13 @@ class CmdResult(object):
         self.exit_status = "undefined"
         self.call_time = 0.0
 
+    def __str__(self):
+        s = ''
+        s += "command: %s\n" % self.cmdline
+        s += "stdout:\n%s\n" % self.stdout
+        s += "stderr:\n%s\n" % self.stderr
+        return s
+
     def pprint(self):
         """
         Print the command result in a pretty and colorful way.

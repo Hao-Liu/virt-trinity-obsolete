@@ -1,17 +1,70 @@
 import re
+import sys
 import random
 import string
 import utils
 import logging
 import xml_gen
-from xml_gen import RngUtils
 from xml.etree import ElementTree
 
-def cpuset():
-    return "^1,0-3"
+# TODO: setup max integer for different OS and arch
+MAX_INT = sys.maxint
 
-def integer(min_inc, max_inc):
+
+def cpuset(min_inc=0, max_inc=MAX_INT, max_len=1000, used_vcpu=set()):
+    cnt = int_exp(0, max_len)
+
+    cpus = []
+    cpusets = set()
+    for i in xrange(cnt):
+        choice = random.randint(0, 2)
+        if choice == 0:
+            # Number
+            num = int_exp(min_inc, max_inc)
+            cpusets.add(num)
+            cpus.append(str(num))
+        elif choice == 1:
+            # Range
+            upper = int_exp(min_inc, max_inc-1)
+            lower = int_exp(min_inc, upper)
+            cpusets.update(set(xrange(lower, upper+1)))
+            cpus.append('-'.join((str(lower), str(upper))))
+        elif choice == 2:
+            # Negation
+            num = int_exp(min_inc, max_inc)
+            cpusets.discard(num)
+            cpus.append('^' + str(num))
+
+    for cpu in (used_vcpu & cpusets):
+        cpusets.discard(cpu)
+        cpus.append('^' + str(cpu))
+
+    if not cpusets:
+        cpusets.update(set(xrange(min_inc, max_inc+1)))
+        cpus.append('-'.join((str(min_inc), str(max_inc))))
+        for cpu in (used_vcpu & cpusets):
+            cpusets.discard(cpu)
+            cpus.append('^' + str(cpu))
+
+    used_vcpu.update(cpusets)
+
+    cpu_str = ','.join(cpus)
+    return cpu_str
+
+
+def int_exp(min_inc=0, max_inc=None, lambd=0.1):
+    shift = int(random.expovariate(lambd))
+    if max_inc is not None:
+        if max_inc - min_inc == 0:
+            shift = 0
+        else:
+            shift %= max_inc - min_inc
+    return min_inc + shift
+
+
+def integer(min_inc=0, max_inc=10):
     return random.randint(min_inc, max_inc)
+
 
 def text(escape=False, min_len=5, max_len=10):
     """
@@ -33,9 +86,11 @@ def text(escape=False, min_len=5, max_len=10):
         return utils.escape(result_str)
     else:
         return result_str
-    return "randomtext"
 
-ALL_CHARS = set(string.letters)
+# XXX: work around for XML fail
+ALL_CHARS = set(string.letters) - set('&\'"<>')
+
+
 def regex(regex):
     """
     Generate a random string matches given regular expression.
@@ -232,11 +287,13 @@ def regex(regex):
     _end_group(1, 1)
     return _randomize(result_stack[0][0][0])
 
+
 def xml(xml_type, name=None):
-    xml_str = str(RngUtils(xml_type))
+    xml_str = str(xml_gen.RngUtils(xml_type))
     if name is not None:
         xml_str = re.sub(r'(?<=\<name\>)\S*(?=\<\/name\>)', name, xml_str)
     return xml_str
+
 
 def device_xml(dev_type=None):
     dev_types = [

@@ -179,6 +179,7 @@ class RandomPermanentFile(RandomFile):
     def post(self):
         pass
 
+
 class RandomWord(RandomString):
     def __init__(self, opt_args):
         # Should be looser
