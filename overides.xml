@@ -1,0 +1,276 @@
+<?xml version="1.0"?>
+<grammar xmlns="http://relaxng.org/ns/structure/1.0" datatypeLibrary="http://www.w3.org/2001/XMLSchema-datatypes">
+  <define name='unit'>
+    <data type='string'>
+      <param name='pattern'>([bB]([yY][tT][eE][sS]?)?)|([kKmMgGtTpP]([iI]?[bB])?)</param>
+    </data>
+  </define>
+
+  <define name='scaledInteger'>
+    <optional>
+      <attribute name='unit'>
+        <ref name='unit'/>
+      </attribute>
+    </optional>
+    <ref name='unsignedLong'/>
+  </define>
+
+  <define name="os">
+    <choice>
+      <ref name="oshvm"/>
+    </choice>
+  </define>
+  <define  name="qemucdevTgtDef">
+    <element name="target">
+      <interleave>
+        <choice>
+          <optional>
+            <ref name="qemucdevConsoleTgtType"/>
+          </optional>
+          <optional>
+            <ref name="qemucdevSerialTgtType"/>
+          </optional>
+        </choice>
+        <optional>
+          <attribute name="port">
+            <ref name="usbAddr"/>
+          </attribute>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="ostypehvm">
+    <element name="type">
+      <optional>
+        <choice>
+          <ref name="hvmx86"/>
+          <ref name="hvmmips"/>
+          <ref name="hvmsparc"/>
+          <ref name="hvmppc"/>
+          <ref name="hvmppc64"/>
+          <ref name="hvmarm"/>
+          <ref name="hvmaarch64"/>
+        </choice>
+      </optional>
+      <value>hvm</value>
+    </element>
+  </define>
+
+  <define name="test">
+    <element name="pcihole64">
+      <attribute name='unit'>
+          <value>a</value>
+      </attribute>
+      <value>a</value>
+    </element>
+  </define>
+
+  <define name="smartcard">
+    <element name="smartcard">
+      <choice>
+        <group>
+          <attribute name="mode">
+            <value>host</value>
+          </attribute>
+          <!-- might need to add optional database element here later -->
+        </group>
+        <group>
+          <attribute name="mode">
+            <value>host-certificates</value>
+          </attribute>
+          <ref name='certificate'/>
+          <ref name='certificate'/>
+          <ref name='certificate'/>
+          <optional>
+            <element name="database">
+              <ref name="absDirPath"/>
+            </element>
+          </optional>
+        </group>
+        <group>
+          <attribute name="mode">
+            <value>passthrough</value>
+          </attribute>
+          <ref name="qemucdevSrcType"/>
+          <interleave>
+            <ref name="qemucdevSrcDef"/>
+            <optional>
+              <ref name="qemucdevTgtDef"/>
+            </optional>
+          </interleave>
+        </group>
+      </choice>
+      <optional>
+        <ref name="alias"/>
+      </optional>
+      <optional>
+        <element name="address">
+          <attribute name="type">
+            <value>ccid</value>
+          </attribute>
+          <ref name="ccidaddress"/>
+        </element>
+      </optional>
+    </element>
+  </define>
+
+  <define name="pciaddress">
+    <optional>
+      <attribute name="domain">
+         <value>0</value>
+      </attribute>
+    </optional>
+    <attribute name="bus">
+      <ref name="pciBus"/>
+    </attribute>
+    <attribute name="slot">
+      <ref name="pciSlot"/>
+    </attribute>
+    <attribute name="function">
+      <ref name="pciFunc"/>
+    </attribute>
+    <optional>
+      <attribute name="multifunction">
+        <ref name="virOnOff"/>
+      </attribute>
+    </optional>
+  </define>
+
+  <define name="pciController">
+    <element name="controller">
+      <interleave>
+        <optional>
+          <ref name="alias"/>
+        </optional>
+        <choice>
+          <!-- pci has an optional attribute "model" -->
+          <group>
+            <attribute name="type">
+              <value>pci</value>
+            </attribute>
+            <!-- *-root controllers have an optional element "pcihole64"-->
+            <choice>
+              <group>
+                <attribute name="index">
+                   <value>0</value>
+                </attribute>
+                <attribute name="model">
+                  <choice>
+                    <value>pci-root</value>
+                  </choice>
+                </attribute>
+                <optional>
+                  <element name="pcihole64">
+                    <ref name="scaledInteger"/>
+                  </element>
+                </optional>
+              </group>
+            </choice>
+          </group>
+        </choice>
+        <optional>
+          <element name="driver">
+            <optional>
+              <attribute name="queues">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="cmd_per_lun">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+            <optional>
+              <attribute name="max_sectors">
+                <ref name="unsignedInt"/>
+              </attribute>
+            </optional>
+          </element>
+        </optional>
+      </interleave>
+    </element>
+  </define>
+
+  <define name="geometry">
+    <element name="geometry">
+      <attribute name="cyls">
+        <data type="unsignedInt"/>
+      </attribute>
+      <attribute name="heads">
+        <data type="unsignedInt"/>
+      </attribute>
+      <attribute name="secs">
+        <data type="unsignedInt"/>
+      </attribute>
+      <optional>
+        <attribute name="trans">
+          <choice>
+            <value>auto</value>
+            <value>none</value>
+            <value>lba</value>
+          </choice>
+        </attribute>
+      </optional>
+    </element>
+  </define>
+
+  <define name="diskAuth">
+      <empty/>
+  </define>
+
+  <define name="guestfwdTarget">
+    <element name="target">
+      <attribute name="type">
+        <value>guestfwd</value>
+      </attribute>
+      <attribute name="address">
+          <ref name="ipv4Addr"/>
+      </attribute>
+      <attribute name="port">
+          <ref name="port"/>
+      </attribute>
+    </element>
+  </define>
+
+  <define name="input">
+    <element name="input">
+      <attribute name="type">
+        <choice>
+          <value>tablet</value>
+          <value>mouse</value>
+          <value>keyboard</value>
+        </choice>
+      </attribute>
+      <optional>
+        <attribute name="bus">
+          <choice>
+            <value>ps2</value>
+            <value>usb</value>
+          </choice>
+        </attribute>
+      </optional>
+      <optional>
+        <ref name="alias"/>
+      </optional>
+      <optional>
+        <ref name="address"/>
+      </optional>
+    </element>
+  </define>
+
+  <define name="usbmaster">
+    <element name="master">
+      <attribute name="startport">
+        <ref name="usbAddr"/>
+      </attribute>
+      <empty/>
+    </element>
+  </define>
+
+  <define name="absFilePath">
+    <data type="string">
+      <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&quot;/%,]+</param>
+    </data>
+  </define>
+</grammar>
