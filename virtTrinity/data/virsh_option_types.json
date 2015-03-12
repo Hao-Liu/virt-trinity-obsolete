@@ -49,7 +49,7 @@
             "Invalid PCI address ${domain:int}:${bus:int}:${slot:int}.${function:int}. Only PCI domain 0 is available"
         ],
         "option_types": {
-            "source": "file",
+            "source": "permanent_file",
             "target": "disk_name",
             "sourcetype": "disk_source_type",
             "targetbus": "disk_bus",
@@ -151,31 +151,59 @@
             "unsupported flags (0x${flagno:int}) in function qemuDomainBlockCommit"
         ],
         "option_types": {
-            "domain": "domain",
             "path": "exist_disk"
         }
     },
     "blockcopy": {
         "exclusives": [
-            ["dest", "xml"]
+            ["dest", "xml"],
+            ["format", "xml"],
+            ["blockdev", "xml"],
+            ["pivot", "finish"]
         ],
         "depends": [
             ["async", "wait"],
             ["verbose", "wait"]
-        ]
+        ],
+        "result_patterns": [
+            "unknown driver format value '${format}'",
+            "Failed to open file '${xml}'"
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "blockjob": {
         "exclusives": [
             ["abort", "info"],
+            ["async", "info"],
+            ["pivot", "info"],
+            ["abort", "raw"],
+            ["async", "raw"],
+            ["pivot", "raw"],
             ["info", "bandwidth"],
-            ["abort", "bandwidth"]
-        ]
+            ["raw", "bandwidth"],
+            ["abort", "bandwidth"],
+            ["async", "bandwidth"],
+            ["pivot", "bandwidth"]
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "blockpull": {
         "depends": [
             ["async", "wait"],
             ["verbose", "wait"]
-        ]
+        ],
+        "option_types": {
+            "path": "exist_disk"
+        }
+    },
+    "blockresize": {
+        "option_types": {
+            "path": "exist_disk"
+        }
     },
     "change-media": {
         "exclusives": [
@@ -204,6 +232,10 @@
         },
         "result_patterns": [
             "domain '${domain}' already exists with uuid ${domuuid}",
+            "PCI bus is not compatible with the device at ${dev-addr}",
+            "Unknown source mode '${mode}'",
+            "Cannot parse USB version ${version}",
+            "missing volume name or file name in gluster source path '${path}'",
             "Domain ${domain} defined from"
         ]
     },
@@ -596,7 +628,9 @@
             "Path '${path}' is not accessible",
             "Cannot access storage file '${source}' (as uid:${uid:int}, gid:${gid:int})",
             "Invalid value '${value}' for '${cgpath}'",
-            "Unable to parse FD number '${fds}'"
+            "Unable to parse FD number '${fds}'",
+            "Cannot duplicate FD ${fd}:",
+            "Unable to find security driver for label ${label}"
         ],
         "weight": 5
     },
