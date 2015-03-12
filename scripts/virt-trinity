@@ -13,10 +13,10 @@ if os.path.isdir(os.path.join(base_dir, 'virtTrinity')):
     sys.path.insert(0, base_dir)
 
 
-from virtTrinity import virsh
-from virtTrinity import utils
-from virtTrinity import server
-from virtTrinity import client
+from virtTrinity import virsh   # nopep8
+from virtTrinity import utils   # nopep8
+from virtTrinity import server  # nopep8
+from virtTrinity import client  # nopep8
 
 
 def iter_command(command):
