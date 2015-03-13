@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+
+import os
+import re
+import sys
+import time
+import logging
+from collections import Counter
+
+# simple magic for using scripts within a source tree
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if os.path.isdir(os.path.join(base_dir, 'virtTrinity')):
+    sys.path.insert(0, base_dir)
+
+from virtTrinity.utils import run         # nopep8
+from virtTrinity.xml_gen import RngUtils  # nopep8
+
+break_define = None
+break_start = None
+
+res = 0
+
+define_results = Counter()
+start_results = Counter()
+running = True
+
+define_counter = 0
+define_success = 0
+start_counter = 0
+start_success = 0
+while running:
+    if define_counter % 100 == 0 and define_counter:
+        print "DEFINE SUCCESS: %d %s" % (
+            define_success,
+            float(define_success) * 100 / define_counter)
+        for err, cnt in define_results.most_common(50):
+            if len(err.splitlines()) > 1:
+                print "%5d %6.2f %s" % (
+                    cnt,
+                    (float(cnt) * 100 / define_counter),
+                    err.splitlines()[-1])
+        print
+        if start_counter:
+            print "START SUCCESS : %d %s" % (
+                start_success,
+                float(start_success) * 100 / start_counter)
+            for err, cnt in start_results.most_common(50):
+                if len(err.splitlines()) > 1:
+                    print "%5d %6.2f %s" % (
+                        cnt,
+                        float(cnt) * 100 / start_counter,
+                        err.splitlines()[-1])
+            print
+
+    # Prepare
+    begin = time.time()
+    domxml = RngUtils('domain')
+    logging.debug("Prepare time: %.2f" % (time.time() - begin))
+
+    try:
+        xml_str = re.sub(r'(?<=\<name\>)\S*(?=\<\/name\>)',
+                         'xml_test', str(domxml))
+    except TypeError, detail:
+        print detail
+        continue
+
+    with open('test.xml', 'w') as fout:
+        fout.write(xml_str)
+
+    # Validate
+    begin = time.time()
+    res = run("virt-xml-validate test.xml")
+    logging.debug("Validation time: %.2f" % (time.time() - begin))
+    if res.exit_code:
+        logging.error("Not validated")
+        logging.error(res)
+        running = False
+
+    # Define
+    begin = time.time()
+    define_counter += 1
+    res = run("virsh define test.xml")
+    define_results[res.stderr] += 1
+    if break_define is not None and break_define in res.stderr.strip():
+        logging.error(res)
+        running = False
+
+    if res.exit_code:
+        logging.debug("Not defined")
+        logging.debug(res.stderr)
+        run("virsh undefine xml_test")
+        continue
+    else:
+        define_success += 1
+    logging.debug("Define time: %.2f" % (time.time() - begin))
+
+    # Start
+    begin = time.time()
+    start_counter += 1
+    res = run("virsh start xml_test")
+    start_results[res.stderr] += 1
+    if break_start is not None and break_start in res.stderr.strip():
+        logging.error(res)
+        running = False
+    if not res.exit_code:
+        start_success += 1
+        continue
+    logging.debug("Start time: %.2f" % (time.time() - begin))
+
+    # Undefine
+    begin = time.time()
+    res = run("EDITOR='sed -i s/\<nvram\ .*//g' virsh edit xml_test")
+    res = run("virsh undefine xml_test", 8)
+    logging.debug("Undefine time: %.2f" % (time.time() - begin))
+    if time.time() - begin > 5.0:
+        logging.error("Undefine timed out")
