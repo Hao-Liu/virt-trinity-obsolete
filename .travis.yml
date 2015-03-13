@@ -7,8 +7,8 @@ install:
     - "pip install coverage"
     - "pip install coveralls"
 script: 
-    - "pep8 ./scripts/* virtTrinity/"
-    - "pylint ./scripts/* virtTrinity/ --reports=n --disable=W,R,C,I"
+    - "pep8 ./scripts/* ./tools/* virtTrinity/"
+    - "pylint ./scripts/* ./tools/* virtTrinity/ --reports=n --disable=W,R,C,I"
     - "coverage run --source=virtTrinity,scripts/virt-trinity setup.py test"
 after_success:
     coveralls
