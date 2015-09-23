@@ -15,7 +15,7 @@ if os.path.isdir(os.path.join(base_dir, 'virtTrinity')):
 from virtTrinity.utils import run         # nopep8
 from virtTrinity.xml_gen import RngUtils  # nopep8
 
-break_define = None
+break_define = "options"
 break_start = None
 
 res = 0
@@ -28,6 +28,7 @@ define_counter = 0
 define_success = 0
 start_counter = 0
 start_success = 0
+xml_logging_index = 0
 while running:
     if define_counter % 100 == 0 and define_counter:
         print "DEFINE SUCCESS: %d %s" % (
@@ -64,12 +65,12 @@ while running:
         print detail
         continue
 
-    with open('test.xml', 'w') as fout:
+    with open('latest.xml', 'w') as fout:
         fout.write(xml_str)
 
     # Validate
     begin = time.time()
-    res = run("virt-xml-validate test.xml")
+    res = run("virt-xml-validate latest.xml")
     logging.debug("Validation time: %.2f" % (time.time() - begin))
     if res.exit_code:
         logging.error("Not validated")
@@ -79,18 +80,30 @@ while running:
     # Define
     begin = time.time()
     define_counter += 1
-    res = run("virsh define test.xml")
+    res = run("virsh define latest.xml")
     define_results[res.stderr] += 1
     if break_define is not None and break_define in res.stderr.strip():
         logging.error(res)
+        xml_logging_index += 1
+        with open('%s-break.xml' % xml_logging_index, 'w') as fout:
+            fout.write(xml_str)
         running = False
 
-    if res.exit_code:
+    if res.exit_status == 'failure':
         logging.debug("Not defined")
         logging.debug(res.stderr)
         run("virsh undefine xml_test")
         continue
+    elif res.exit_status == 'timeout':
+        logging.debug("Timed out")
+        xml_logging_index += 1
+        with open('%s-timeout.xml' % xml_logging_index, 'w') as fout:
+            fout.write(xml_str)
+        continue
     else:
+        xml_logging_index += 1
+        with open('%s-success.xml' % xml_logging_index, 'w') as fout:
+            fout.write(xml_str)
         define_success += 1
     logging.debug("Define time: %.2f" % (time.time() - begin))
 
