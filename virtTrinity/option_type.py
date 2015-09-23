@@ -212,6 +212,8 @@ class RandomVmXml(RandomFile):
         if avail_names:
             vm_name = random.choice(avail_names)
             self.content = utils_random.xml('domain', name=vm_name)
+            with open('latest.xml', 'w') as fp:
+                fp.write(self.content)
         else:
             opt_args['skip'] = True
 
