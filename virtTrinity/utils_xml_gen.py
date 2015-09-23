@@ -40,6 +40,7 @@ OVERIDE_MAP = {
         ("/domain/cputune/vcpusched", None, "ignore_vcpusched_if_no_vcpu"),
         ("/domain/cpu/numa/cell", None, "ignore_cell_if_no_vcpu"),
         ("/domain/cputune/iothreadsched", None, "ignore_if_no_iothread"),
+        ("/domain/keywrap/cipher", None, "ignore_cipher_if_both_exists"),
         ("/domain/.*seclabel", None, "seclabel"),
     ],
     "define": [
@@ -59,11 +60,14 @@ OVERIDE_MAP = {
         ("/domain/devices/disk/target/tray", None, "disk_tray"),
         ("/domain/devices/disk/target/bus", None, "disk_bus"),
         ("/domain/cpu/numa/cell/id", None, "numa_id"),
+        ("/domain/cpu/numa/cell/memory", None, "cell_memory"),
+        ("/domain/cpu/numa/cell/unit", None, "cell_memory_unit"),
         ("/domain/devices/interface/bandwidth/inbound/floor", None,
          "iface_inbound_floor"),
         ("/domain/devices/interface/bandwidth/outbound/floor", None,
          "iface_outbound_floor"),
-        ("/domain/memory/unit", None, "max_mem_unit"),
+        ("/domain/maxMemory/unit", None, "max_mem_unit"),
+        ("/domain/memory/unit", None, "actual_mem_unit"),
         ("/domain/currentMemory/unit", None, "cur_mem_unit"),
         ("/domain/numatune/memnode/cellid", None, "numatune_cellid"),
         ("/domain/devices/disk/driver/event_idx", None, "disk_virtio"),
@@ -71,6 +75,7 @@ OVERIDE_MAP = {
         ("/domain/cputune/iothreadsched/iothreads", None,
          "iothreadsched_iothreads"),
         ("/domain/cputune/iothreadpin/iothread", None, "iothreadpin_iothread"),
+        ("/domain/iothreadids/iothread/id", None, "iothread_id"),
         ("/domain/features/hyperv/spinlocks/retries", None,
          "hyperv_spinlock_retries"),
         ("/domain/idmap/uid/start", None, "idmap_root"),
@@ -93,6 +98,7 @@ OVERIDE_MAP = {
         ("/domain/devices/interface/ip/family", None, "ip_family"),
         ("/domain/devices/interface/route/netmask", None, "route_netmask"),
         ("/domain/.*seclabel/model", None, "seclabel_model"),
+        ("/domain/devices/nvram/address", None, "dimm_base"),
         ("/controller/address/bus", None, "controller_bus"),
     ],
     "zeroOrMore": [
@@ -118,7 +124,8 @@ OVERIDE_MAP = {
         (None, '/define\[@name="usbPort"\]/data', "usbport"),
         (None, '/define\[@name="timeDelta"\]/data', "time_delta"),
         ('/domain/iothreads', None, "max_iothread"),
-        ("/domain/memory", None, "max_mem"),
+        ("/domain/maxMemory", None, "max_mem"),
+        ("/domain/memory", None, "act_mem"),
         ("/domain/currentMemory", None, "cur_mem"),
         ("/domain/iothreads", None, "iothreads"),
         ("/domain/devices/disk/target", None, "disk_target"),
@@ -148,6 +155,7 @@ OVERIDE_MAP = {
         ("/domain/devices/disk/source", None, "disk_source"),
         ("/domain/devices/interface/route", '/define\[@name="ipAddr"\]/choice',
          "address_family"),
+        ("/domain/keywrap/cipher", None, "cipher_name"),
     ],
     "ref": [
     ],
@@ -246,6 +254,21 @@ class ProcessBase(object):
             cnt = self.params['max_vcpu'] = utils_random.int_exp(1)
         return cnt
 
+    def get_max_mem(self):
+        if 'maxmem' in self.params:
+            maxmem = self.params['maxmem']
+            unit = self.params['maxmem_unit']
+        else:
+            maxmem = utils_random.integer(1, 10000000)
+            unit = 'eib'
+            while maxmem <= UNIT_MAP[unit]:
+                unit = random.choice(UNIT_MAP.keys())
+            maxmem /= UNIT_MAP[unit]
+            maxmem *= UNIT_MAP[unit]
+            self.params['maxmem'] = maxmem
+            self.params['maxmem_unit'] = unit
+        return maxmem, unit
+
     def get_max_iothread(self):
         if 'max_iothread' in self.params:
             cnt = self.params['max_iothread']
@@ -319,6 +342,13 @@ class ProcessElement(ProcessBase):
         if used_iothreads < self.params['max_iothread']:
             return self.go_on()
 
+    @definable
+    def ignore_cipher_if_both_exists(self):
+        has_aes = self.cur_xml.find('./cipher[@name="aes"]') is not None
+        has_dea = self.cur_xml.find('./cipher[@name="dea"]') is not None
+        if not (has_aes and has_dea):
+            return self.go_on()
+
     @startable
     def seclabel(self):
         # TODO: Check whether all kind of seclabels are used.
@@ -347,7 +377,7 @@ class ProcessAttribute(ProcessBase):
     @definable
     def domain_type(self):
         # TODO: detect available domain types.
-        types = random.choice(["qemu", "kvm", "xen"])
+        types = random.choice(["qemu", "kvm"])
         return types
 
     @definable
@@ -357,6 +387,27 @@ class ProcessAttribute(ProcessBase):
         else:
             self.params['numa_maxid'] += 1
         return str(self.params['numa_maxid'])
+
+    @definable
+    def cell_memory(self):
+        maxmem, _ = self.get_max_mem()
+        if 'left_numa_mem' not in self.params:
+            self.params['left_numa_mem'] = maxmem
+        left_mem = self.params['left_numa_mem']
+        mem = utils_random.integer(1, left_mem)
+        unit = 'eib'
+        while mem <= UNIT_MAP[unit]:
+            unit = random.choice(UNIT_MAP.keys())
+        mem /= UNIT_MAP[unit]
+        mem *= UNIT_MAP[unit]
+        self.params['left_numa_mem'] -= mem
+        self.params['cell_mem_unit'] = unit
+        #print 'cell', self.params['left_numa_mem'], self.params['cell_mem_unit']
+        return str(mem / UNIT_MAP[self.params['cell_mem_unit']])
+
+    @definable
+    def cell_memory_unit(self):
+        return self.params['cell_mem_unit']
 
     @definable
     def current_vcpu(self):
@@ -430,27 +481,37 @@ class ProcessAttribute(ProcessBase):
 
     @definable
     def max_mem_unit(self):
-        maxmem = utils_random.integer(1, 10000000)
+        _, unit = self.get_max_mem()
+        return str(unit)
+
+    @definable
+    def actual_mem_unit(self):
+        maxmem, _ = self.get_max_mem()
+        actmem = utils_random.integer(1, maxmem)
         unit = 'eib'
-        while maxmem <= UNIT_MAP[unit]:
+        while actmem <= UNIT_MAP[unit]:
             unit = random.choice(UNIT_MAP.keys())
-        maxmem /= UNIT_MAP[unit]
-        maxmem *= UNIT_MAP[unit]
-        self.params['maxmem'] = maxmem
-        self.params['maxmem_unit'] = unit
+        actmem /= UNIT_MAP[unit]
+        actmem *= UNIT_MAP[unit]
+        self.params['actmem'] = actmem
+        self.params['actmem_unit'] = unit
         return str(unit)
 
     @definable
     def cur_mem_unit(self):
-        maxmem = self.params['maxmem']
-        curmem = utils_random.integer(1, maxmem)
+        actmem = self.params['actmem']
+        curmem = utils_random.integer(1, actmem)
         unit = 'eib'
         while curmem <= UNIT_MAP[unit]:
+            #print unit, UNIT_MAP.keys()
             unit = random.choice(UNIT_MAP.keys())
         curmem /= UNIT_MAP[unit]
         curmem *= UNIT_MAP[unit]
         self.params['curmem'] = curmem
         self.params['curmem_unit'] = unit
+        #print 'maxmem', self.params['maxmem'], self.params['maxmem_unit']
+        #print 'actmem', self.params['actmem'], self.params['actmem_unit']
+        #print 'curmem', self.params['curmem'], self.params['curmem_unit']
         return str(unit)
 
     @definable
@@ -472,6 +533,19 @@ class ProcessAttribute(ProcessBase):
         iothreads = self.params['iothreads']
         iothread = utils_random.integer(0, iothreads)
         return str(iothread)
+
+    @definable
+    def iothread_id(self):
+        iothreads = self.params['iothreads']
+        if 'iothreadids' not in self.params:
+            self.params['iothreadids'] = set()
+        ids = self.params['iothreadids']
+
+        tid = utils_random.integer(0, iothreads)
+        while tid in ids and len(ids) < iothreads:
+            tid = utils_random.integer(0, iothreads)
+        self.params['iothreadids'].add(tid)
+        return str(tid)
 
     @definable
     def hyperv_spinlock_retries(self):
@@ -542,6 +616,11 @@ class ProcessAttribute(ProcessBase):
 
         model = random.choice(models)
         return model
+
+    @definable
+    def dimm_base(self):
+        print self.cur_xml
+        pass
 
     @definable
     def route_netmask(self):
@@ -663,13 +742,18 @@ class ProcessData(ProcessBase):
                    UNIT_MAP[self.params['maxmem_unit']])
 
     @definable
+    def act_mem(self):
+        return str(self.params['actmem'] /
+                   UNIT_MAP[self.params['actmem_unit']])
+
+    @definable
     def cur_mem(self):
         return str(self.params['curmem'] /
                    UNIT_MAP[self.params['curmem_unit']])
 
     @definable
     def iothreads(self):
-        self.params['iothreads'] = utils_random.integer(1, 10000000)
+        self.params['iothreads'] = utils_random.integer(1, 1000)
         return str(self.params['iothreads'])
 
     @definable
@@ -877,7 +961,7 @@ class ProcessChoice(ProcessBase):
 
     @definable
     def hostdev_mode(self):
-        if self.xml.get('type') not in ['qemu', 'xen', 'kvm']:
+        if self.xml.get('type') not in ['qemu', 'kvm']:
             return self.go_on()
 
         if self.node.find('./group/ref[@name="hostdevcaps"]') is None:
@@ -995,3 +1079,16 @@ class ProcessChoice(ProcessBase):
                     family = 'ipv4'
 
         self.choices.append(self.node.find('./ref[@name="%sAddr"]' % family))
+
+    @definable
+    def cipher_name(self):
+        ciphers = self.parent.findall('./cipher')
+        existing_ciphers = set()
+        for cipher in ciphers:
+            name = cipher.get('name')
+            if name is not None:
+                existing_ciphers.add(name)
+
+        for val in self.node.getchildren():
+            if val.text not in existing_ciphers:
+                self.choices.append(val)

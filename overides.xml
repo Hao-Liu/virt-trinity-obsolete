@@ -273,4 +273,19 @@
       <param name="pattern">/[a-zA-Z0-9_\.\+\-\\&quot;/%,]+</param>
     </data>
   </define>
+
+  <define name="dimmaddress">
+    <optional>
+      <attribute name="slot">
+        <ref name="unsignedInt"/>
+      </attribute>
+    </optional>
+    <optional>
+      <attribute name="base">
+        <data type='string'>
+          <param name="pattern">(0x)?[0-9a-f]{10}</param>
+        </data>
+      </attribute>
+    </optional>
+  </define>
 </grammar>
